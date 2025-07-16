@@ -8,7 +8,7 @@ import requests
 import pandas as pd
 import numpy as np
 import json
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, ClassVar
 from datetime import datetime, timedelta
 from langchain.tools import BaseTool
 import matplotlib.pyplot as plt
@@ -25,7 +25,7 @@ from config import FRED_API_KEY
 
 class FREDEconomicDataTool(BaseTool):
     name: str = "fred_economic_data"
-    description = """
+    description: str = """
     Fetches economic indicators from Federal Reserve Economic Data (FRED) database.
     Provides data on GDP, inflation, unemployment, interest rates, etc.
     
@@ -39,7 +39,7 @@ class FREDEconomicDataTool(BaseTool):
     """
     
     # Mapping of common names to FRED series IDs
-    INDICATOR_MAPPING = {
+    INDICATOR_MAPPING: ClassVar[Dict[str, str]] = {
         "GDP": "GDP",  # Gross Domestic Product
         "RGDP": "GDPC1",  # Real Gross Domestic Product
         "INFLATION": "CPIAUCSL",  # Consumer Price Index for All Urban Consumers
@@ -202,7 +202,7 @@ class FREDEconomicDataTool(BaseTool):
 
 class ForexDataTool(BaseTool):
     name: str = "forex_data"
-    description = """
+    description: str = """
     Fetches foreign exchange rate data for currency pairs.
     Provides current and historical exchange rates.
     
@@ -285,7 +285,7 @@ class ForexDataTool(BaseTool):
 
 class GlobalMarketIndicesTool(BaseTool):
     name: str = "global_market_indices"
-    description = """
+    description: str = """
     Fetches data on global market indices like S&P 500, NASDAQ, FTSE, Nikkei, etc.
     Provides current levels, historical performance, and comparative analysis.
     
@@ -298,7 +298,7 @@ class GlobalMarketIndicesTool(BaseTool):
     """
     
     # Mapping of common names to index symbols
-    INDEX_MAPPING = {
+    INDEX_MAPPING: ClassVar[Dict[str, str]] = {
         "S&P500": "^GSPC",
         "SP500": "^GSPC",
         "DOW": "^DJI",

@@ -13,8 +13,8 @@ from config import FMP_API_KEY
 class CompanyFinancialsTool(BaseTool):
     """Tool for getting financial statements from Financial Modeling Prep"""
     
-    name = "company_financials"
-    description = """Gets company financial statements from Financial Modeling Prep API. 
+    name: str = "company_financials"
+    description: str = """Gets company financial statements from Financial Modeling Prep API. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - statement (required): Type of statement ('income', 'balance', 'cash', 'metrics', 'ratios', 'growth')
@@ -127,8 +127,8 @@ class CompanyFinancialsTool(BaseTool):
 class CompanyValuationTool(BaseTool):
     """Tool for getting company valuation data from Financial Modeling Prep"""
     
-    name = "company_valuation"
-    description = """Gets company valuation metrics from Financial Modeling Prep API. 
+    name: str = "company_valuation"
+    description: str = """Gets company valuation metrics from Financial Modeling Prep API. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - metric (optional): Specific valuation metric ('dcf', 'rating', 'price-target', 'all')
@@ -242,8 +242,8 @@ class CompanyValuationTool(BaseTool):
 class IndustryComparisonTool(BaseTool):
     """Tool for comparing a company with its industry peers"""
     
-    name = "industry_comparison"
-    description = """Compares a company with its industry peers using data from Financial Modeling Prep. 
+    name: str = "industry_comparison"
+    description: str = """Compares a company with its industry peers using data from Financial Modeling Prep. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - metric (optional): Comparison metric ('pe', 'pb', 'ps', 'debt-to-equity', 'dividend-yield')

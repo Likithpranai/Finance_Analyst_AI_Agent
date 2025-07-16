@@ -16,7 +16,7 @@ class GetStockNewsTool(BaseTool):
     """Tool for getting recent news about a stock"""
     
     name: str = "get_stock_news"
-    description = """Gets recent news articles about a company or stock.
+    description: str = """Gets recent news articles about a company or stock.
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - max_results (optional): Maximum number of news articles to return (default: 5)
@@ -81,7 +81,7 @@ class AnalyzeMarketSentimentTool(BaseTool):
     """Tool for analyzing market sentiment from news articles"""
     
     name: str = "analyze_market_sentiment"
-    description = """Analyzes the general market sentiment for a stock based on recent news.
+    description: str = """Analyzes the general market sentiment for a stock based on recent news.
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - max_results (optional): Maximum number of news articles to analyze (default: 5)

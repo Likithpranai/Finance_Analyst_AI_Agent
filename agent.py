@@ -9,7 +9,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import JsonOutputParser
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph, END, START
 from langgraph.prebuilt import ToolNode
 
 from tools.stock_data import (
@@ -250,6 +250,7 @@ def create_finance_react_agent():
     workflow.add_node("tools", tool_node)
     
     # Add edges
+    workflow.add_edge(START, "agent")
     workflow.add_edge("agent", "tools")
     workflow.add_edge("tools", "agent")
     

@@ -219,7 +219,7 @@ def interpret_dividend_yield(dividend_yield, ticker):
 
 class FinancialRatiosTool(BaseTool):
     name: str = "financial_ratios_analyzer"
-    description = """
+    description: str = """
     Calculate and analyze key financial ratios for a given stock ticker. 
     Provides metrics such as P/E ratio, P/S ratio, P/B ratio, D/E ratio, ROE, PEG ratio, 
     current ratio, and dividend yield, along with interpretations.
@@ -240,7 +240,7 @@ class FinancialRatiosTool(BaseTool):
 
 class CompetitiveAnalysisTool(BaseTool):
     name: str = "competitive_analysis"
-    description = """
+    description: str = """
     Perform competitive analysis by comparing financial metrics of a company with its peers or sector averages.
     Compares key metrics like P/E ratio, ROE, revenue growth, and profit margins.
     
@@ -376,7 +376,7 @@ class CompetitiveAnalysisTool(BaseTool):
 
 class DCFValuationTool(BaseTool):
     name: str = "dcf_valuation"
-    description = """
+    description: str = """
     Performs a simplified Discounted Cash Flow (DCF) valuation for a stock.
     Estimates future free cash flows based on growth rates and discounts them to present value.
     

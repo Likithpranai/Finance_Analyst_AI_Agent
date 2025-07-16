@@ -16,8 +16,8 @@ import json
 from config import SEC_API_KEY
 
 class SECFilingsAnalyzerTool(BaseTool):
-    name = "sec_filings_analyzer"
-    description = """
+    name: str = "sec_filings_analyzer"
+    description: str = """
     Fetches and analyzes SEC filings for a company, extracting key financial data and changes.
     
     Args:
@@ -296,8 +296,8 @@ class SECFilingsAnalyzerTool(BaseTool):
 
 
 class SECFinancialStatementsTool(BaseTool):
-    name = "sec_financial_statements"
-    description = """
+    name: str = "sec_financial_statements"
+    description: str = """
     Extract standardized financial statements from SEC filings.
     Provides access to income statement, balance sheet, and cash flow statement data.
     
@@ -555,4 +555,3 @@ def random_with_trend(start_range: float, end_range: float, position: int, total
     result = base + (np.random.random() * 2 - 1) * variation
     
     return round(result, 2)
-"""

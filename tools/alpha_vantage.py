@@ -13,8 +13,8 @@ from config import ALPHA_VANTAGE_API_KEY
 class AlphaVantageStockTool(BaseTool):
     """Tool for getting stock data from Alpha Vantage"""
     
-    name = "alpha_vantage_stock_data"
-    description = """Gets stock data from Alpha Vantage API. 
+    name: str = "alpha_vantage_stock_data"
+    description: str = """Gets stock data from Alpha Vantage API. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - function (optional): The Alpha Vantage function to use (default: TIME_SERIES_DAILY)
@@ -142,8 +142,8 @@ class AlphaVantageStockTool(BaseTool):
 class AlphaVantageForexTool(BaseTool):
     """Tool for getting forex data from Alpha Vantage"""
     
-    name = "alpha_vantage_forex_data"
-    description = """Gets forex (currency exchange) data from Alpha Vantage API. 
+    name: str = "alpha_vantage_forex_data"
+    description: str = """Gets forex (currency exchange) data from Alpha Vantage API. 
     Input should be a JSON object with:
     - from_currency (required): The currency to convert from (e.g., USD)
     - to_currency (required): The currency to convert to (e.g., EUR)
