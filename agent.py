@@ -39,6 +39,26 @@ from tools.financial_modeling_prep import (
     IndustryComparisonTool
 )
 
+# Import fundamental analysis tools
+from tools.fundamental_analysis import (
+    FinancialRatiosTool,
+    CompetitiveAnalysisTool,
+    DCFValuationTool
+)
+
+# Import SEC filings analysis tools
+from tools.sec_filings import (
+    SECFilingsAnalyzerTool,
+    SECFinancialStatementsTool
+)
+
+# Import economic indicators tools
+from tools.economic_indicators import (
+    FREDEconomicDataTool,
+    ForexDataTool,
+    GlobalMarketIndicesTool
+)
+
 from config import GEMINI_API_KEY, GEMINI_MODEL, TEMPERATURE, DATA_SOURCES, PRIMARY_DATA_SOURCE
 
 
@@ -80,7 +100,21 @@ def create_finance_react_agent():
         # Financial Modeling Prep Tools
         CompanyFinancialsTool(),
         CompanyValuationTool(),
-        IndustryComparisonTool()
+        IndustryComparisonTool(),
+        
+        # Fundamental Analysis Tools
+        FinancialRatiosTool(),
+        CompetitiveAnalysisTool(),
+        DCFValuationTool(),
+        
+        # SEC Filings Analysis Tools
+        SECFilingsAnalyzerTool(),
+        SECFinancialStatementsTool(),
+        
+        # Economic Indicators Tools
+        FREDEconomicDataTool(),
+        ForexDataTool(),
+        GlobalMarketIndicesTool()
     ]
     
     # Create the LLM
@@ -92,13 +126,16 @@ def create_finance_react_agent():
     )
     
     # ReAct agent system prompt
-    system_prompt = """You are a financial analyst AI agent that provides market insights and stock analysis.
+    system_prompt = """You are a professional financial analyst AI agent that provides comprehensive market insights, stock analysis, and investment recommendations.
     
     You have access to tools for:
     1. Getting current and historical stock prices
     2. Calculating technical indicators (RSI, Moving Averages, MACD, Bollinger Bands)
     3. Tracking market news and sentiment
     4. Visualizing stock data
+    5. Fundamental Analysis (financial ratios, competitive analysis, DCF valuation)
+    6. SEC Filings Analysis (recent filings, financial statements extraction)
+    7. Economic Indicators (GDP, inflation, interest rates, global indices, forex)
 
     Follow the ReAct pattern to solve user queries:
     - REASON: Carefully think about what information you need and which tools to use

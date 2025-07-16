@@ -13,6 +13,7 @@ ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 FMP_API_KEY = os.getenv("FMP_API_KEY")
 FRED_API_KEY = os.getenv("FRED_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+SEC_API_KEY = os.getenv("SEC_API_KEY")
 
 # Model settings
 GEMINI_MODEL = "gemini-pro"
