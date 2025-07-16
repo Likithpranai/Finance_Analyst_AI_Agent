@@ -14,8 +14,8 @@ from config import DEFAULT_STOCK_HISTORY_PERIOD, DEFAULT_STOCK_HISTORY_INTERVAL
 class GetStockPriceTool(BaseTool):
     """Tool for getting current stock price data"""
     
-    name = "get_stock_price"
-    description = "Gets the current price of a stock. Input should be a valid stock ticker symbol."
+    name: str = "get_stock_price"
+    description: str = "Gets the current price of a stock. Input should be a valid stock ticker symbol."
     
     def _run(self, ticker: str) -> Dict[str, Any]:
         """Run the tool"""
@@ -54,8 +54,8 @@ class GetStockPriceTool(BaseTool):
 class GetStockHistoryTool(BaseTool):
     """Tool for getting historical stock price data"""
     
-    name = "get_stock_history"
-    description = """Gets historical stock price data. 
+    name: str = "get_stock_history"
+    description: str = """Gets historical stock price data. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - period (optional): Time period, e.g., '1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'
@@ -109,8 +109,8 @@ class GetStockHistoryTool(BaseTool):
 class PlotStockPriceTool(BaseTool):
     """Tool for plotting stock price data"""
     
-    name = "plot_stock_price"
-    description = """Generates a plot of historical stock prices. 
+    name: str = "plot_stock_price"
+    description: str = """Generates a plot of historical stock prices. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - period (optional): Time period, e.g., '1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'
@@ -188,8 +188,8 @@ class PlotStockPriceTool(BaseTool):
 class GetCompanyInfoTool(BaseTool):
     """Tool for getting company information"""
     
-    name = "get_company_info"
-    description = "Gets basic information about a company. Input should be a valid stock ticker symbol."
+    name: str = "get_company_info"
+    description: str = "Gets basic information about a company. Input should be a valid stock ticker symbol."
     
     def _run(self, ticker: str) -> Dict[str, Any]:
         """Run the tool"""

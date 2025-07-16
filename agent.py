@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Annotated, TypedDict, Sequence
 import google.generativeai as genai
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_community.chat_models import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import JsonOutputParser
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode

@@ -15,7 +15,7 @@ from config import MAX_NEWS_RESULTS
 class GetStockNewsTool(BaseTool):
     """Tool for getting recent news about a stock"""
     
-    name = "get_stock_news"
+    name: str = "get_stock_news"
     description = """Gets recent news articles about a company or stock.
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
@@ -80,7 +80,7 @@ class GetStockNewsTool(BaseTool):
 class AnalyzeMarketSentimentTool(BaseTool):
     """Tool for analyzing market sentiment from news articles"""
     
-    name = "analyze_market_sentiment"
+    name: str = "analyze_market_sentiment"
     description = """Analyzes the general market sentiment for a stock based on recent news.
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol

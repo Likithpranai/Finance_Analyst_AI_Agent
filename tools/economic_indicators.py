@@ -24,7 +24,7 @@ except ImportError:
 from config import FRED_API_KEY
 
 class FREDEconomicDataTool(BaseTool):
-    name = "fred_economic_data"
+    name: str = "fred_economic_data"
     description = """
     Fetches economic indicators from Federal Reserve Economic Data (FRED) database.
     Provides data on GDP, inflation, unemployment, interest rates, etc.
@@ -201,7 +201,7 @@ class FREDEconomicDataTool(BaseTool):
 
 
 class ForexDataTool(BaseTool):
-    name = "forex_data"
+    name: str = "forex_data"
     description = """
     Fetches foreign exchange rate data for currency pairs.
     Provides current and historical exchange rates.
@@ -284,7 +284,7 @@ class ForexDataTool(BaseTool):
 
 
 class GlobalMarketIndicesTool(BaseTool):
-    name = "global_market_indices"
+    name: str = "global_market_indices"
     description = """
     Fetches data on global market indices like S&P 500, NASDAQ, FTSE, Nikkei, etc.
     Provides current levels, historical performance, and comparative analysis.

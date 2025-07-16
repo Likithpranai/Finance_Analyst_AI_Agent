@@ -218,7 +218,7 @@ def interpret_dividend_yield(dividend_yield, ticker):
         return "High dividend yield, may indicate income-focused stock or potential concerns about sustainability"
 
 class FinancialRatiosTool(BaseTool):
-    name = "financial_ratios_analyzer"
+    name: str = "financial_ratios_analyzer"
     description = """
     Calculate and analyze key financial ratios for a given stock ticker. 
     Provides metrics such as P/E ratio, P/S ratio, P/B ratio, D/E ratio, ROE, PEG ratio, 
@@ -239,7 +239,7 @@ class FinancialRatiosTool(BaseTool):
         return calculate_ratios(ticker)
 
 class CompetitiveAnalysisTool(BaseTool):
-    name = "competitive_analysis"
+    name: str = "competitive_analysis"
     description = """
     Perform competitive analysis by comparing financial metrics of a company with its peers or sector averages.
     Compares key metrics like P/E ratio, ROE, revenue growth, and profit margins.
@@ -375,7 +375,7 @@ class CompetitiveAnalysisTool(BaseTool):
         return self._run(ticker, peers)
 
 class DCFValuationTool(BaseTool):
-    name = "dcf_valuation"
+    name: str = "dcf_valuation"
     description = """
     Performs a simplified Discounted Cash Flow (DCF) valuation for a stock.
     Estimates future free cash flows based on growth rates and discounts them to present value.

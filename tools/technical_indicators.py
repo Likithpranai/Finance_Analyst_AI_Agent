@@ -3,6 +3,8 @@ Tools for calculating technical indicators for stock analysis
 """
 import yfinance as yf
 import pandas as pd
+# Fix numpy NaN import issue for pandas_ta
+from . import ta_fix
 import pandas_ta as ta
 import numpy as np
 from langchain.tools import BaseTool
@@ -14,8 +16,8 @@ from config import DEFAULT_STOCK_HISTORY_PERIOD, DEFAULT_STOCK_HISTORY_INTERVAL
 class CalculateRSITool(BaseTool):
     """Tool for calculating Relative Strength Index (RSI)"""
     
-    name = "calculate_rsi"
-    description = """Calculates RSI (Relative Strength Index) for a stock. 
+    name: str = "calculate_rsi"
+    description: str = """Calculates RSI (Relative Strength Index) for a stock. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - period (optional): Time period for historical data
@@ -83,8 +85,8 @@ class CalculateRSITool(BaseTool):
 class CalculateMovingAveragesTool(BaseTool):
     """Tool for calculating Moving Averages"""
     
-    name = "calculate_moving_averages"
-    description = """Calculates simple and exponential moving averages for a stock. 
+    name: str = "calculate_moving_averages"
+    description: str = """Calculates simple and exponential moving averages for a stock. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - period (optional): Time period for historical data
@@ -182,8 +184,8 @@ class CalculateMovingAveragesTool(BaseTool):
 class CalculateMACDTool(BaseTool):
     """Tool for calculating MACD (Moving Average Convergence Divergence)"""
     
-    name = "calculate_macd"
-    description = """Calculates MACD (Moving Average Convergence Divergence) for a stock. 
+    name: str = "calculate_macd"
+    description: str = """Calculates MACD (Moving Average Convergence Divergence) for a stock. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - period (optional): Time period for historical data
@@ -279,8 +281,8 @@ class CalculateMACDTool(BaseTool):
 class CalculateBollingerBandsTool(BaseTool):
     """Tool for calculating Bollinger Bands"""
     
-    name = "calculate_bollinger_bands"
-    description = """Calculates Bollinger Bands for a stock. 
+    name: str = "calculate_bollinger_bands"
+    description: str = """Calculates Bollinger Bands for a stock. 
     Input should be a JSON object with:
     - ticker (required): A valid stock ticker symbol
     - period (optional): Time period for historical data
