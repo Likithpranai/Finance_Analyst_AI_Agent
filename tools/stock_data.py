@@ -1,6 +1,3 @@
-"""
-Tools for fetching and analyzing stock data
-"""
 import yfinance as yf
 import pandas as pd
 import numpy as np
