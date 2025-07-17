@@ -256,7 +256,7 @@ def create_finance_react_agent():
         tool_patterns = [
             r"I should use the ([\w]+) tool",
             r"Using the ([\w]+) tool",
-            r"tool\s*:\s*['"]?([\w]+)['"]?",
+            r"tool\s*:\s*['\"]?([\w]+)['\"]?",
             r"([\w]+Tool)"
         ]
         
@@ -328,51 +328,60 @@ def run_agent(agent, query: str, chat_history: List = None) -> Dict[str, Any]:
     """
     if chat_history is None:
         chat_history = []
-        
-    # Create initial state
+    
+    # Create initial state with the user query
     state = {"messages": chat_history + [HumanMessage(content=query)]}
     
-    # Execute the agent
-    result = agent.invoke(state)
-    
-    # Extract final answer
-    final_message = result["messages"][-1]
-    
-    # Parse the final answer from the message
-    if isinstance(final_message, AIMessage):
-        try:
+    try:
+        # Execute the agent
+        result = agent.invoke(state)
+        
+        # Extract final answer
+        final_messages = result.get("messages", [])
+        if not final_messages:
+            return {"answer": "No response generated. Please try again.", "full_result": result}
+            
+        final_message = final_messages[-1]
+        
+        # Parse the final answer from the message
+        if isinstance(final_message, AIMessage):
             content = final_message.content
-            # Check if the content is surrounded by markdown code fence
-            match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
-            if match:
-                content = match.group(1)
             
-            # Clean up any potential issues with the JSON string
-            content = content.strip()
-            
-            # Try to parse the JSON
-            parsed_content = json.loads(content)
-            final_answer = parsed_content.get("final_answer", content)
-            
-        except Exception as e:
-            # If JSON parsing fails, try to extract the final answer directly
-            if "final_answer" in content:
+            # First, try to find JSON in code blocks
+            json_match = re.search(r'```(?:json)?\s*\n(\{.*?\})\s*\n```', content, re.DOTALL)
+            if json_match:
                 try:
-                    # Try to extract just the final_answer part
-                    final_answer_match = re.search(r'"final_answer"\s*:\s*"(.*?)"', content, re.DOTALL)
-                    if final_answer_match:
-                        final_answer = final_answer_match.group(1)
-                    else:
-                        final_answer = content
-                except:
-                    final_answer = content
-            else:
-                final_answer = content
-    else:
-        final_answer = str(final_message)
-    
-    # Return the final response
-    return {
-        "answer": final_answer,
-        "full_result": result
-    }
+                    json_content = json_match.group(1).strip()
+                    parsed_content = json.loads(json_content)
+                    if "final_answer" in parsed_content:
+                        return {"answer": parsed_content["final_answer"], "full_result": result}
+                except Exception:
+                    pass  # Continue to other parsing methods if this fails
+            
+            # Next, try to find any JSON object in the content
+            json_match = re.search(r'\{[^\{\}]*"final_answer"[^\{\}]*\}', content, re.DOTALL)
+            if json_match:
+                try:
+                    json_content = json_match.group(0).strip()
+                    parsed_content = json.loads(json_content)
+                    if "final_answer" in parsed_content:
+                        return {"answer": parsed_content["final_answer"], "full_result": result}
+                except Exception:
+                    pass  # Continue to other parsing methods if this fails
+            
+            # If we can't parse JSON, look for a final answer in the text
+            if "final_answer" in content.lower():
+                # Try to extract the final answer part
+                answer_match = re.search(r'(?:final[_\s]answer|answer)[\s:]*([^\n]+(?:\n(?!\n)[^\n]+)*)', 
+                                         content.lower(), re.IGNORECASE)
+                if answer_match:
+                    return {"answer": answer_match.group(1).strip(), "full_result": result}
+            
+            # If all else fails, return the whole content
+            return {"answer": content, "full_result": result}
+        else:
+            return {"answer": str(final_message), "full_result": result}
+            
+    except Exception as e:
+        # Handle any exceptions during agent execution
+        return {"answer": f"An error occurred while processing your request: {str(e)}", "full_result": None}
