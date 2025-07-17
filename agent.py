@@ -207,37 +207,78 @@ def create_finance_react_agent():
             match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
             if match:
                 content = match.group(1)
+            else:
+                # Try other common formats
+                match = re.search(r"```\n(.*?)\n```", content, re.DOTALL)
+                if match:
+                    content = match.group(1)
             
+            # Clean up the content
+            content = content.strip()
+            
+            # Try to parse the JSON
             parsed_response = json.loads(content)
             
+            # Ensure all required keys are present
+            if "tool" in parsed_response and parsed_response["tool"] != "final_answer" and "tool_input" not in parsed_response:
+                parsed_response["tool_input"] = "{}"
+                
         except Exception as e:
             # If JSON parsing fails, create a structured output from the text
             content = response.content
-            if "final_answer" in content.lower():
-                parsed_response = {
-                    "thoughts": "Providing final answer to user query",
-                    "tool": "final_answer",
-                    "final_answer": content
-                }
+            
+            # Try to extract JSON from the content if it exists
+            json_match = re.search(r'\{[\s\S]*?"tool"[\s\S]*?\}', content)
+            if json_match:
+                try:
+                    json_str = json_match.group(0)
+                    parsed_response = json.loads(json_str)
+                    # Continue with valid JSON
+                except:
+                    # Fall back to heuristic parsing
+                    parsed_response = handle_non_json_response(content)
             else:
-                # Try to extract a tool name from the content
-                tool_match = re.search(r"I should use the (\w+) tool", content)
-                if tool_match:
-                    tool_name = tool_match.group(1)
-                    parsed_response = {
-                        "thoughts": content,
-                        "tool": tool_name,
-                        "tool_input": "{}"
-                    }
-                else:
-                    # Default to final answer if we can't parse properly
-                    parsed_response = {
-                        "thoughts": "JSON parsing failed, providing best response",
-                        "tool": "final_answer",
-                        "final_answer": content
-                    }
+                # Fall back to heuristic parsing
+                parsed_response = handle_non_json_response(content)
         
         return parsed_response
+        
+    def handle_non_json_response(content):
+        """Helper function to parse non-JSON responses using heuristics."""
+        if "final_answer" in content.lower():
+            return {
+                "thoughts": "Providing final answer to user query",
+                "tool": "final_answer",
+                "final_answer": content
+            }
+        
+        # Try to extract a tool name from the content
+        tool_patterns = [
+            r"I should use the ([\w]+) tool",
+            r"Using the ([\w]+) tool",
+            r"tool\s*:\s*['"]?([\w]+)['"]?",
+            r"([\w]+Tool)"
+        ]
+        
+        for pattern in tool_patterns:
+            tool_match = re.search(pattern, content)
+            if tool_match:
+                tool_name = tool_match.group(1)
+                # Check if the extracted name ends with 'Tool'
+                if not tool_name.endswith('Tool'):
+                    tool_name = tool_name + 'Tool'
+                return {
+                    "thoughts": content,
+                    "tool": tool_name,
+                    "tool_input": "{}"
+                }
+        
+        # Default to final answer if we can't parse properly
+        return {
+            "thoughts": "JSON parsing failed, providing best response",
+            "tool": "final_answer",
+            "final_answer": content
+        }
 
     # Create the LangGraph workflow
     workflow = StateGraph(AgentState)
@@ -305,11 +346,28 @@ def run_agent(agent, query: str, chat_history: List = None) -> Dict[str, Any]:
             match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
             if match:
                 content = match.group(1)
-                
+            
+            # Clean up any potential issues with the JSON string
+            content = content.strip()
+            
+            # Try to parse the JSON
             parsed_content = json.loads(content)
             final_answer = parsed_content.get("final_answer", content)
-        except:
-            final_answer = final_message.content
+            
+        except Exception as e:
+            # If JSON parsing fails, try to extract the final answer directly
+            if "final_answer" in content:
+                try:
+                    # Try to extract just the final_answer part
+                    final_answer_match = re.search(r'"final_answer"\s*:\s*"(.*?)"', content, re.DOTALL)
+                    if final_answer_match:
+                        final_answer = final_answer_match.group(1)
+                    else:
+                        final_answer = content
+                except:
+                    final_answer = content
+            else:
+                final_answer = content
     else:
         final_answer = str(final_message)
     
