@@ -413,7 +413,12 @@ class FundamentalAnalysisTools:
         """
         try:
             if ratios is None:
-                ratios = ["pe_ratio", "ps_ratio", "pb_ratio", "de_ratio", "roe"]
+                # Expanded list of ratios to compare
+                ratios = [
+                    "pe_ratio", "forward_pe_ratio", "peg_ratio", "ps_ratio", "pb_ratio", 
+                    "de_ratio", "roe", "eps", "dividend_yield", "profit_margin", 
+                    "operating_margin", "return_on_assets", "current_ratio", "quick_ratio"
+                ]
                 
             ticker = yf.Ticker(symbol)
             info = ticker.info
@@ -429,17 +434,145 @@ class FundamentalAnalysisTools:
             stock_ratios = FundamentalAnalysisTools.get_financial_ratios(symbol)
             if "error" in stock_ratios:
                 return stock_ratios
+                
+            # Try to find peer companies in the same industry
+            peers = []
+            try:
+                # Get peer symbols from Yahoo Finance if available
+                peer_symbols = ticker.info.get('peerSet', [])
+                
+                # If no peers found, try to find companies in the same industry
+                if not peer_symbols and industry:
+                    # This is a simplified approach - in a real implementation, you would use a more robust method
+                    # to find companies in the same industry, such as a sector ETF or industry database
+                    industry_search = industry.replace(' ', '+')
+                    search_url = f"https://finance.yahoo.com/lookup?s={industry_search}"
+                    # Note: In a real implementation, you would parse this URL to extract symbols
+                    # For now, we'll use a limited set of major companies as a fallback
+                    
+                    # Fallback peers based on common sectors
+                    sector_peers = {
+                        "Technology": ["AAPL", "MSFT", "GOOGL", "AMZN", "META"],
+                        "Financial Services": ["JPM", "BAC", "WFC", "C", "GS"],
+                        "Healthcare": ["JNJ", "PFE", "MRK", "ABBV", "UNH"],
+                        "Consumer Cyclical": ["AMZN", "HD", "MCD", "NKE", "SBUX"],
+                        "Communication Services": ["GOOGL", "META", "VZ", "T", "NFLX"],
+                        "Industrials": ["HON", "UNP", "UPS", "CAT", "GE"],
+                        "Energy": ["XOM", "CVX", "COP", "SLB", "EOG"],
+                        "Basic Materials": ["LIN", "APD", "ECL", "NEM", "FCX"],
+                        "Consumer Defensive": ["PG", "KO", "PEP", "WMT", "COST"],
+                        "Real Estate": ["AMT", "PLD", "CCI", "EQIX", "PSA"],
+                        "Utilities": ["NEE", "DUK", "SO", "D", "AEP"]
+                    }
+                    
+                    if sector in sector_peers:
+                        peer_symbols = sector_peers[sector]
+            except Exception as e:
+                print(f"Error finding peers: {str(e)}")
+                peer_symbols = []
             
-            # This would ideally fetch industry averages from a database or API
-            # For now, we'll use placeholder values
-            # In a real implementation, you would fetch actual industry averages
+            # Collect data from up to 5 peers
+            for peer_symbol in peer_symbols[:5]:
+                if peer_symbol != symbol:  # Skip the original symbol
+                    try:
+                        peer_ratios = FundamentalAnalysisTools.get_financial_ratios(peer_symbol)
+                        if "error" not in peer_ratios:
+                            peers.append(peer_ratios)
+                    except Exception as e:
+                        print(f"Error getting ratios for peer {peer_symbol}: {str(e)}")
+            
+            # Calculate industry averages based on peers and fallback to estimated values if needed
             industry_averages = {
+                # Default industry averages (fallbacks)
                 "pe_ratio": 20.5,
+                "forward_pe_ratio": 18.0,
+                "peg_ratio": 1.5,
                 "ps_ratio": 2.3,
                 "pb_ratio": 3.1,
                 "de_ratio": 1.2,
-                "roe": 0.15
+                "roe": 0.15,
+                "eps": 2.5,
+                "dividend_yield": 0.02,
+                "profit_margin": 0.10,
+                "operating_margin": 0.15,
+                "return_on_assets": 0.05,
+                "current_ratio": 1.5,
+                "quick_ratio": 1.0
             }
+            
+            # Update industry averages with actual peer data if available
+            if peers:
+                for ratio in ratios:
+                    ratio_values = []
+                    for peer in peers:
+                        if ratio in peer.get("ratios", {}) and peer["ratios"][ratio].get("value") is not None:
+                            ratio_values.append(peer["ratios"][ratio]["value"])
+                    
+                    if ratio_values:
+                        # Calculate average, removing outliers
+                        if len(ratio_values) > 3:
+                            # Remove highest and lowest values to reduce outlier impact
+                            ratio_values.remove(max(ratio_values))
+                            ratio_values.remove(min(ratio_values))
+                        
+                        industry_averages[ratio] = sum(ratio_values) / len(ratio_values)
+            
+            # Extract additional ratios from stock info if available
+            additional_ratios = {}
+            
+            # Dividend yield
+            if "dividendYield" in info and info["dividendYield"] is not None:
+                additional_ratios["dividend_yield"] = {
+                    "value": info["dividendYield"],
+                    "formula": "Annual Dividend / Share Price",
+                    "description": "Indicates dividend return relative to share price"
+                }
+            
+            # Profit margin
+            if "profitMargins" in info and info["profitMargins"] is not None:
+                additional_ratios["profit_margin"] = {
+                    "value": info["profitMargins"],
+                    "formula": "Net Income / Revenue",
+                    "description": "Measures company's ability to convert revenue into profit"
+                }
+            
+            # Operating margin
+            if "operatingMargins" in info and info["operatingMargins"] is not None:
+                additional_ratios["operating_margin"] = {
+                    "value": info["operatingMargins"],
+                    "formula": "Operating Income / Revenue",
+                    "description": "Measures operational efficiency excluding non-operating costs"
+                }
+            
+            # Return on assets
+            if "returnOnAssets" in info and info["returnOnAssets"] is not None:
+                additional_ratios["return_on_assets"] = {
+                    "value": info["returnOnAssets"],
+                    "formula": "Net Income / Total Assets",
+                    "description": "Measures how efficiently assets generate earnings"
+                }
+            
+            # Current ratio
+            if "totalCurrentAssets" in info and "totalCurrentLiabilities" in info:
+                if info["totalCurrentLiabilities"] != 0:
+                    additional_ratios["current_ratio"] = {
+                        "value": info["totalCurrentAssets"] / info["totalCurrentLiabilities"],
+                        "formula": "Current Assets / Current Liabilities",
+                        "description": "Measures short-term liquidity and ability to pay short-term obligations"
+                    }
+            
+            # Quick ratio
+            if "totalCurrentAssets" in info and "inventory" in info and "totalCurrentLiabilities" in info:
+                if info["totalCurrentLiabilities"] != 0:
+                    quick_assets = info["totalCurrentAssets"] - info.get("inventory", 0)
+                    additional_ratios["quick_ratio"] = {
+                        "value": quick_assets / info["totalCurrentLiabilities"],
+                        "formula": "(Current Assets - Inventory) / Current Liabilities",
+                        "description": "More conservative liquidity measure excluding inventory"
+                    }
+            
+            # Add additional ratios to stock_ratios
+            stock_ratios["ratios"].update(additional_ratios)
             
             # Compare stock's ratios to industry averages
             comparison = {
@@ -447,11 +580,16 @@ class FundamentalAnalysisTools:
                 "company_name": info.get('longName', 'N/A'),
                 "industry": industry,
                 "sector": sector,
+                "peer_count": len(peers),
                 "comparisons": {}
             }
             
             for ratio in ratios:
-                if ratio in stock_ratios["ratios"] and stock_ratios["ratios"][ratio]["value"] is not None:
+                # Check if ratio exists in stock_ratios or additional_ratios
+                ratio_exists = (ratio in stock_ratios["ratios"] and 
+                               stock_ratios["ratios"][ratio].get("value") is not None)
+                
+                if ratio_exists:
                     stock_value = stock_ratios["ratios"][ratio]["value"]
                     industry_value = industry_averages.get(ratio, None)
                     
@@ -459,11 +597,22 @@ class FundamentalAnalysisTools:
                         # Calculate percentage difference
                         pct_diff = ((stock_value - industry_value) / industry_value) * 100
                         
+                        # Determine if the difference is good or bad based on the ratio
+                        evaluation = "neutral"
+                        if ratio in ["pe_ratio", "forward_pe_ratio", "peg_ratio", "ps_ratio", "pb_ratio", "de_ratio"]:
+                            # For these ratios, lower is generally better
+                            evaluation = "positive" if pct_diff < 0 else "negative"
+                        elif ratio in ["roe", "eps", "dividend_yield", "profit_margin", "operating_margin", 
+                                      "return_on_assets", "current_ratio", "quick_ratio"]:
+                            # For these ratios, higher is generally better
+                            evaluation = "positive" if pct_diff > 0 else "negative"
+                        
                         comparison["comparisons"][ratio] = {
                             "stock_value": stock_value,
                             "industry_average": industry_value,
                             "percentage_difference": pct_diff,
-                            "relative_position": "above average" if pct_diff > 0 else "below average"
+                            "relative_position": "above average" if pct_diff > 0 else "below average",
+                            "evaluation": evaluation
                         }
             
             return comparison

@@ -16,6 +16,8 @@ from typing import Dict, List, Any, Tuple, Optional, Union
 from tools.alpha_vantage_tools import AlphaVantageTools
 from tools.predictive_analytics import PredictiveAnalyticsTools
 from tools.fundamental_analysis import FundamentalAnalysisTools
+from tools.enhanced_visualization import EnhancedVisualizationTools
+from tools.combined_analysis import CombinedAnalysisTools
 
 load_dotenv()
 
@@ -354,7 +356,17 @@ class FinanceAnalystReActAgent:
             "get_balance_sheet": FundamentalAnalysisTools.get_balance_sheet,
             "get_cash_flow": FundamentalAnalysisTools.get_cash_flow,
             "format_financial_ratios": FundamentalAnalysisTools.format_financial_ratios_for_display,
-            "get_industry_comparison": FundamentalAnalysisTools.get_industry_comparison
+            "get_industry_comparison": FundamentalAnalysisTools.get_industry_comparison,
+            
+            # Enhanced Visualization tools
+            "visualize_financial_trends": EnhancedVisualizationTools.visualize_financial_trends,
+            "create_correlation_matrix": EnhancedVisualizationTools.create_correlation_matrix,
+            "compare_performance": EnhancedVisualizationTools.compare_performance,
+            "visualize_financial_ratios": EnhancedVisualizationTools.visualize_financial_ratios,
+            
+            # Combined Analysis tools
+            "create_combined_analysis": CombinedAnalysisTools.create_combined_analysis,
+            "format_combined_analysis": CombinedAnalysisTools.format_combined_analysis
         }
         
         self.system_prompt = """
@@ -395,6 +407,16 @@ class FinanceAnalystReActAgent:
         23. format_financial_ratios(ratios): Format financial ratios for display
         24. get_industry_comparison(symbol, ratios): Compare a stock's financial ratios to industry averages
         
+        ENHANCED VISUALIZATION TOOLS:
+        25. visualize_financial_trends(symbol, period, chart_types): Create interactive visualizations of financial trends
+        26. create_correlation_matrix(symbols, period): Generate correlation matrix heatmap for multiple stocks
+        27. compare_performance(symbols, benchmark, period): Compare stock performance against benchmarks
+        28. visualize_financial_ratios(symbol, peer_symbols): Create visualizations of financial ratios with peer comparisons
+        
+        COMBINED ANALYSIS TOOLS:
+        29. create_combined_analysis(symbol, period): Generate comprehensive analysis combining technical and fundamental data
+        30. format_combined_analysis(analysis): Format combined analysis results for display
+        
         When a user asks a question about a stock, you should follow the ReAct pattern:
         1. REASON: Think about what information is needed to answer the query
         2. ACT: Select and execute the appropriate tool(s)
@@ -412,6 +434,11 @@ class FinanceAnalystReActAgent:
         - For detecting unusual price movements, use detect_anomalies (15)
         - For multiple future scenarios (bull/bear/base cases), use scenario_analysis (17)
         - For time series statistical properties, use check_stationarity (18)
+        - For advanced financial trend visualizations, use visualize_financial_trends (25)
+        - For analyzing relationships between multiple stocks, use create_correlation_matrix (26)
+        - For benchmark comparisons, use compare_performance (27)
+        - For visualizing financial ratios with peer comparisons, use visualize_financial_ratios (28)
+        - For comprehensive stock analysis combining technical and fundamental factors, use create_combined_analysis (29)
         
         Always format your response in a clear, professional manner with sections for:
         - Summary: A brief overview of the findings
