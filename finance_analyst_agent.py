@@ -14,6 +14,7 @@ import re
 import traceback
 from typing import Dict, List, Any, Tuple, Optional, Union
 from tools.alpha_vantage_tools import AlphaVantageTools
+from tools.predictive_analytics import PredictiveAnalyticsTools
 
 load_dotenv()
 
@@ -59,13 +60,26 @@ class StockTools:
             return f"Error fetching stock price for {symbol}: {str(e)}"
     
     @staticmethod
-    def get_stock_history(symbol, period="1mo"):
-        """Get historical stock data"""
+    def get_stock_history(symbol, period="1mo", return_df=False):
+        """Get historical stock data
+        
+        Args:
+            symbol: Stock ticker symbol
+            period: Time period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)
+            return_df: If True, returns the DataFrame directly instead of formatted string
+            
+        Returns:
+            Formatted string with historical data summary or DataFrame if return_df=True
+        """
         try:
             ticker = yf.Ticker(symbol)
             data = ticker.history(period=period)
             if data.empty:
-                return f"Could not find historical data for {symbol}"
+                return f"Could not find historical data for {symbol}" if not return_df else None
+            
+            # Return DataFrame if requested
+            if return_df:
+                return data
             
             # Format the data for display
             result = f"Historical data for {symbol} (last {period}):\n"
@@ -74,7 +88,8 @@ class StockTools:
             result += f"Volume: {data['Volume'].mean():.0f} (avg)"
             return result
         except Exception as e:
-            return f"Error fetching historical data for {symbol}: {str(e)}"
+            error_msg = f"Error fetching historical data for {symbol}: {str(e)}"
+            return error_msg if not return_df else None
     
     @staticmethod
     def calculate_rsi(symbol, period=14):
@@ -322,7 +337,15 @@ class FinanceAnalystReActAgent:
             "get_intraday_data": AlphaVantageTools.get_intraday_data,
             "get_crypto_data": AlphaVantageTools.get_crypto_data,
             "get_forex_data": AlphaVantageTools.get_forex_data,
-            "get_economic_indicator": AlphaVantageTools.get_economic_indicator
+            "get_economic_indicator": AlphaVantageTools.get_economic_indicator,
+            
+            # Predictive Analytics tools
+            "forecast_with_prophet": PredictiveAnalyticsTools.forecast_with_prophet,
+            "forecast_with_lstm": PredictiveAnalyticsTools.forecast_with_lstm,
+            "detect_anomalies": PredictiveAnalyticsTools.detect_anomalies,
+            "calculate_volatility": PredictiveAnalyticsTools.calculate_volatility,
+            "scenario_analysis": PredictiveAnalyticsTools.scenario_analysis,
+            "check_stationarity": PredictiveAnalyticsTools.check_stationarity
         }
         
         self.system_prompt = """
@@ -347,6 +370,14 @@ class FinanceAnalystReActAgent:
         11. get_forex_data(from_currency, to_currency, interval): Get real-time forex exchange rate data
         12. get_economic_indicator(indicator): Get economic indicators (GDP, INFLATION, UNEMPLOYMENT, etc.)
         
+        PREDICTIVE ANALYTICS TOOLS:
+        13. forecast_with_prophet(historical_data, periods): Generate time series forecasts using Facebook Prophet
+        14. forecast_with_lstm(historical_data, target_column, sequence_length, forecast_periods): Generate forecasts using LSTM neural networks
+        15. detect_anomalies(time_series, contamination): Detect anomalies in time series data using Isolation Forest
+        16. calculate_volatility(historical_data, price_column, window_size): Calculate historical volatility and forecast future volatility
+        17. scenario_analysis(historical_data, price_column, scenarios, forecast_periods): Perform scenario analysis for different market conditions
+        18. check_stationarity(time_series): Check if a time series is stationary using the Augmented Dickey-Fuller test
+        
         When a user asks a question about a stock, you should follow the ReAct pattern:
         1. REASON: Think about what information is needed to answer the query
         2. ACT: Select and execute the appropriate tool(s)
@@ -359,6 +390,11 @@ class FinanceAnalystReActAgent:
         - For forex exchange rates, use get_forex_data
         - For economic context, use get_economic_indicator
         - For standard historical analysis, use yfinance tools (1-7)
+        - For price predictions and forecasting, use forecast_with_prophet or forecast_with_lstm (13-14)
+        - For volatility analysis and risk assessment, use calculate_volatility (16)
+        - For detecting unusual price movements, use detect_anomalies (15)
+        - For multiple future scenarios (bull/bear/base cases), use scenario_analysis (17)
+        - For time series statistical properties, use check_stationarity (18)
         
         Always format your response in a clear, professional manner with sections for:
         - Summary: A brief overview of the findings
@@ -535,6 +571,31 @@ class FinanceAnalystReActAgent:
         # Check for economic indicator needs
         if any(term in query for term in ["economy", "economic", "gdp", "inflation", "unemployment", "interest rate", "treasury", "yield", "retail sales", "consumer sentiment", "macro"]):
             tools_needed.append("get_economic_indicator")
+        
+        # Check for predictive analytics and forecasting needs
+        if any(term in query for term in ["predict", "forecast", "future", "projection", "outlook", "next week", "next month", "next year", "price target", "will it go up", "will it go down", "prediction"]):
+            # Default to Prophet for forecasting
+            tools_needed.append("forecast_with_prophet")
+            
+            # If query mentions neural networks or deep learning, use LSTM
+            if any(term in query for term in ["neural", "deep learning", "lstm", "ai forecast", "machine learning", "advanced forecast"]):
+                tools_needed.append("forecast_with_lstm")
+        
+        # Check for volatility analysis needs
+        if any(term in query for term in ["volatility", "risk", "stable", "unstable", "standard deviation", "variance", "fluctuation", "market risk"]):
+            tools_needed.append("calculate_volatility")
+        
+        # Check for anomaly detection needs
+        if any(term in query for term in ["anomaly", "unusual", "outlier", "abnormal", "strange", "suspicious", "irregular", "detect", "pattern"]):
+            tools_needed.append("detect_anomalies")
+        
+        # Check for scenario analysis needs
+        if any(term in query for term in ["scenario", "bull case", "bear case", "best case", "worst case", "what if", "monte carlo", "simulation", "multiple scenarios", "stress test"]):
+            tools_needed.append("scenario_analysis")
+        
+        # Check for stationarity testing needs
+        if any(term in query for term in ["stationary", "mean reverting", "unit root", "time series properties", "adf test", "statistical test"]):
+            tools_needed.append("check_stationarity")
         
         # If nothing specific was detected, get appropriate default info based on asset type
         if not tools_needed:
@@ -722,6 +783,110 @@ class FinanceAnalystReActAgent:
                     
                     data = tool_function(indicator)
                     results[tool_name] = AlphaVantageTools.format_real_time_data_for_display(data)
+                
+                # Handle predictive analytics tools
+                elif tool_name in ["forecast_with_prophet", "forecast_with_lstm", "detect_anomalies", 
+                                  "calculate_volatility", "scenario_analysis", "check_stationarity"]:
+                    # First, we need historical data to work with
+                    print(f"REACT - ACT: Getting historical data for {symbol} for predictive analytics")
+                    
+                    # Determine period based on query
+                    period = "1y"  # Default to 1 year of data for predictions
+                    if "short term" in query.lower() or "near term" in query.lower():
+                        period = "3mo"
+                    elif "long term" in query.lower() or "long run" in query.lower():
+                        period = "5y"
+                    
+                    # Get historical data using yfinance
+                    if asset_type == "stock":
+                        historical_data = StockTools.get_stock_history(symbol, period, return_df=True)
+                    elif asset_type == "crypto":
+                        # For crypto, we'll use Alpha Vantage data
+                        crypto_data = AlphaVantageTools.get_crypto_data(symbol, "USD", "daily")
+                        if "error" in crypto_data:
+                            results[tool_name] = {"error": f"Could not get historical data for {symbol}: {crypto_data['error']}"}
+                            continue
+                        # Convert Alpha Vantage data to DataFrame
+                        historical_data = pd.DataFrame(crypto_data['time_series'])
+                    else:
+                        results[tool_name] = {"error": f"Predictive analytics not supported for asset type: {asset_type}"}
+                        continue
+                    
+                    # Check if we have valid historical data
+                    if historical_data is None or historical_data.empty:
+                        results[tool_name] = {"error": f"No historical data available for {symbol}"}
+                        continue
+                    
+                    # Process based on specific predictive tool
+                    if tool_name == "forecast_with_prophet":
+                        # Determine forecast periods
+                        periods = 30  # Default to 30 days
+                        if "week" in query.lower():
+                            periods = 7
+                        elif "month" in query.lower():
+                            periods = 30
+                        elif "quarter" in query.lower():
+                            periods = 90
+                        elif "year" in query.lower():
+                            periods = 365
+                            
+                        results[tool_name] = tool_function(historical_data, periods=periods)
+                        
+                    elif tool_name == "forecast_with_lstm":
+                        # Configure LSTM parameters
+                        target_column = 'Close'  # Default to Close price
+                        sequence_length = 10  # Default lookback window
+                        forecast_periods = 30  # Default forecast horizon
+                        
+                        if "week" in query.lower():
+                            forecast_periods = 7
+                        elif "month" in query.lower():
+                            forecast_periods = 30
+                        elif "quarter" in query.lower():
+                            forecast_periods = 90
+                            
+                        results[tool_name] = tool_function(historical_data, target_column, sequence_length, forecast_periods)
+                        
+                    elif tool_name == "detect_anomalies":
+                        # Configure anomaly detection parameters
+                        contamination = 0.05  # Default contamination rate
+                        if "high sensitivity" in query.lower() or "detect more" in query.lower():
+                            contamination = 0.1
+                        elif "low sensitivity" in query.lower() or "strict" in query.lower():
+                            contamination = 0.01
+                            
+                        results[tool_name] = tool_function(historical_data['Close'], contamination)
+                        
+                    elif tool_name == "calculate_volatility":
+                        # Configure volatility calculation parameters
+                        window_size = 20  # Default window size (20 trading days ~ 1 month)
+                        if "short term" in query.lower():
+                            window_size = 10
+                        elif "long term" in query.lower():
+                            window_size = 60
+                            
+                        results[tool_name] = tool_function(historical_data, price_column='Close', window_size=window_size)
+                        
+                    elif tool_name == "scenario_analysis":
+                        # Configure scenario analysis parameters
+                        forecast_periods = 30  # Default to 30 days
+                        if "week" in query.lower():
+                            forecast_periods = 7
+                        elif "month" in query.lower():
+                            forecast_periods = 30
+                        elif "quarter" in query.lower():
+                            forecast_periods = 90
+                        elif "year" in query.lower():
+                            forecast_periods = 252  # Trading days in a year
+                            
+                        # Define scenarios based on query
+                        scenarios = None  # Use default scenarios
+                        
+                        results[tool_name] = tool_function(historical_data, price_column='Close', scenarios=scenarios, forecast_periods=forecast_periods)
+                        
+                    elif tool_name == "check_stationarity":
+                        # Check stationarity of the time series
+                        results[tool_name] = tool_function(historical_data['Close'])
                 
                 else:
                     # Standard execution for other tools
