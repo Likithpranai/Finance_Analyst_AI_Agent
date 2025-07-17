@@ -243,6 +243,97 @@ class FundamentalAnalysisTools:
             return {"error": f"Error retrieving cash flow statement for {symbol}: {str(e)}"}
     
     @staticmethod
+    def format_financial_statement(statement_data: Dict, statement_type: str) -> str:
+        """
+        Format financial statement data for display
+        
+        Args:
+            statement_data: Dictionary with financial statement data
+            statement_type: Type of statement ('income_statement', 'balance_sheet', 'cash_flow')
+            
+        Returns:
+            Formatted string for display
+        """
+        if "error" in statement_data:
+            return f"Error: {statement_data['error']}"
+        
+        # Create a more descriptive title based on statement type
+        if statement_type == 'income_statement':
+            title = "Income Statement (Profitability Analysis)"
+        elif statement_type == 'balance_sheet':
+            title = "Balance Sheet (Financial Position)"
+        elif statement_type == 'cash_flow':
+            title = "Cash Flow Statement (Liquidity Analysis)"
+        else:
+            title = statement_type.replace('_', ' ').title()
+            
+        result = f"{title} for {statement_data['symbol']}:\n\n"
+        result += f"Period: {statement_data['period']}\n"
+        result += f"Currency: {statement_data['currency']}\n\n"
+        
+        # Format the data
+        data = statement_data['data']
+        if not data:
+            result += "No data available\n"
+            return result
+        
+        # Get the periods (columns)
+        periods = list(next(iter(data.values())).keys())
+        result += f"{'Item':<40} {' '.join([str(period)[:10] for period in periods])}\n"
+        result += "-" * 80 + "\n"
+        
+        # Highlight key metrics based on statement type
+        key_metrics = []
+        if statement_type == 'income_statement':
+            key_metrics = ['Total Revenue', 'Gross Profit', 'Operating Income', 'Net Income']
+        elif statement_type == 'balance_sheet':
+            key_metrics = ['Total Assets', 'Total Liabilities', 'Total Equity']
+        elif statement_type == 'cash_flow':
+            key_metrics = ['Operating Cash Flow', 'Capital Expenditure', 'Free Cash Flow']
+        
+        # Add each line item
+        for item, values in data.items():
+            item_values = [values.get(period, None) for period in periods]
+            formatted_values = []
+            for val in item_values:
+                if val is None:
+                    # Skip this value entirely
+                    formatted_values.append(" "*10)
+                elif isinstance(val, (int, float)):
+                    # Format large numbers in millions/billions
+                    if abs(val) >= 1e9:
+                        formatted_values.append(f"${val/1e9:.2f}B")
+                    elif abs(val) >= 1e6:
+                        formatted_values.append(f"${val/1e6:.2f}M")
+                    else:
+                        formatted_values.append(f"${val:.2f}")
+                else:
+                    formatted_values.append(" "*10)  # Skip N/A values
+            
+            # Highlight key metrics
+            if item in key_metrics:
+                result += f"* {item:<38} {' '.join(formatted_values)}\n"
+            else:
+                result += f"  {item:<38} {' '.join(formatted_values)}\n"
+        
+        # Add interpretation based on statement type
+        result += "\nKey Insights:\n"
+        if statement_type == 'income_statement':
+            result += "• Revenue and profit trends indicate company's growth trajectory\n"
+            result += "• Operating margins show operational efficiency\n"
+            result += "• Net income reflects overall profitability after all expenses\n"
+        elif statement_type == 'balance_sheet':
+            result += "• Asset to liability ratio indicates financial stability\n"
+            result += "• Current ratio (current assets/current liabilities) shows short-term liquidity\n"
+            result += "• Equity growth demonstrates value creation for shareholders\n"
+        elif statement_type == 'cash_flow':
+            result += "• Operating cash flow shows cash generated from core business\n"
+            result += "• Free cash flow indicates funds available for expansion, dividends, or debt reduction\n"
+            result += "• Cash flow trends more accurately reflect financial health than accounting profits\n"
+        
+        return result
+    
+    @staticmethod
     def format_financial_ratios_for_display(ratios: Dict) -> str:
         """
         Format financial ratios for display
@@ -295,8 +386,7 @@ class FundamentalAnalysisTools:
                 result += f"{display_name}: {value}\n"
                 result += f"  • {ratio_data['description']}\n"
                 result += f"  • Formula: {ratio_data['formula']}\n\n"
-            else:
-                result += f"{ratio_name.replace('_', ' ').title()}: Not available\n\n"
+            # Skip displaying unavailable ratios entirely
         
         # Add interpretation
         result += "Interpretation Guide:\n"

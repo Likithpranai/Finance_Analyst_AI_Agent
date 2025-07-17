@@ -93,12 +93,12 @@ def perform_combined_analysis(symbol):
             roe = ratios["ratios"].get("roe", {}).get("value", "N/A")
             eps = ratios["ratios"].get("eps", {}).get("value", "N/A")
             
-            print(f"P/E Ratio: {pe_ratio if pe_ratio != 'N/A' else 'N/A'}")
-            print(f"P/S Ratio: {ps_ratio:.2f if ps_ratio != 'N/A' else 'N/A'}")
-            print(f"P/B Ratio: {pb_ratio:.2f if pb_ratio != 'N/A' else 'N/A'}")
-            print(f"D/E Ratio: {de_ratio:.2f if de_ratio != 'N/A' else 'N/A'}")
-            print(f"ROE: {roe*100:.2f}% if roe != 'N/A' else 'N/A'")
-            print(f"EPS: ${eps:.2f if eps != 'N/A' else 'N/A'}")
+            print(f"P/E Ratio: {pe_ratio:.2f if pe_ratio != 'N/A' and pe_ratio is not None else 'N/A'}")
+            print(f"P/S Ratio: {ps_ratio:.2f if ps_ratio != 'N/A' and ps_ratio is not None else 'N/A'}")
+            print(f"P/B Ratio: {pb_ratio:.2f if pb_ratio != 'N/A' and pb_ratio is not None else 'N/A'}")
+            print(f"D/E Ratio: {de_ratio:.2f if de_ratio != 'N/A' and de_ratio is not None else 'N/A'}")
+            print(f"ROE: {roe*100:.2f}%" if roe != 'N/A' and roe is not None else "ROE: N/A")
+            print(f"EPS: ${eps:.2f}" if eps != 'N/A' and eps is not None else "EPS: N/A")
     
     except Exception as e:
         print(f"Error in fundamental analysis: {str(e)}")
@@ -161,7 +161,7 @@ def perform_combined_analysis(symbol):
     fundamental_analysis = []
     
     # P/E analysis
-    if pe_ratio != "N/A":
+    if pe_ratio != "N/A" and pe_ratio is not None:
         if pe_ratio < 15:
             fundamental_analysis.append("P/E ratio suggests potential undervaluation")
         elif pe_ratio > 30:
@@ -170,14 +170,14 @@ def perform_combined_analysis(symbol):
             fundamental_analysis.append("P/E ratio is in a moderate range")
     
     # P/B analysis
-    if pb_ratio != "N/A":
+    if pb_ratio != "N/A" and pb_ratio is not None:
         if pb_ratio < 1:
             fundamental_analysis.append("P/B ratio suggests the stock may be undervalued")
         elif pb_ratio > 5:
             fundamental_analysis.append("P/B ratio is relatively high")
     
     # D/E analysis
-    if de_ratio != "N/A":
+    if de_ratio != "N/A" and de_ratio is not None:
         if de_ratio < 0.5:
             fundamental_analysis.append("Low debt-to-equity ratio indicates strong financial position")
         elif de_ratio > 2:
@@ -206,7 +206,9 @@ def perform_combined_analysis(symbol):
         technical_outlook = "neutral"
     
     # Determine fundamental outlook (simplified)
-    if pe_ratio != "N/A" and ps_ratio != "N/A" and pb_ratio != "N/A":
+    if (pe_ratio != "N/A" and pe_ratio is not None and 
+        ps_ratio != "N/A" and ps_ratio is not None and 
+        pb_ratio != "N/A" and pb_ratio is not None):
         if (pe_ratio < 15 or pe_ratio == "N/A") and ps_ratio < 2 and pb_ratio < 3:
             fundamental_outlook = "potentially undervalued"
         elif pe_ratio > 30 and ps_ratio > 5 and pb_ratio > 5:
