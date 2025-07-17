@@ -248,7 +248,6 @@ class StockPredictionTool(BaseTool):
         short_term_change = ((first_forecast / last_price) - 1) * 100
         overall_change = ((last_forecast / last_price) - 1) * 100
         
-        # Short-term direction
         if short_term_change > 2:
             insights.append(f"The model forecasts a significant short-term increase of {round(short_term_change, 2)}% in the next few days.")
         elif short_term_change > 0.5:
