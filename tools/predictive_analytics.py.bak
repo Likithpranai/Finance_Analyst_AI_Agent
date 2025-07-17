@@ -1308,78 +1308,31 @@ class PredictiveAnalyticsTools:
             
             return results
         except Exception as e:
-            return {"error": f"Error in volatility calculation: {str(e)}"}
-    
-    @staticmethod
-    def scenario_analysis(historical_data: pd.DataFrame, 
-                         price_column: Union[str, tuple] = 'Close',
-                         scenarios: List[str] = ['base', 'bull', 'bear'],
-                         forecast_periods: int = 30,
-                         simulations: int = 500,
-                         custom_scenarios: Dict = None) -> Dict:
-        """
-        Perform scenario analysis for different market conditions using Monte Carlo simulations
+            return {"error": f"Error in scenario analysis: {str(e)}"}
         
-        Args:
-            historical_data: DataFrame with price data
-            price_column: Column with price data (string or tuple for multi-index)
-            scenarios: List of scenarios to analyze
-            forecast_periods: Number of periods to forecast
-            simulations: Number of Monte Carlo simulations to run
-            custom_scenarios: Optional dictionary with custom scenario parameters
-            
-        Returns:
-            Dictionary with scenario analysis results and visualizations
-        """
-        try:
-            # Check if we have valid data
-            if historical_data is None or historical_data.empty:
-                return {"error": "No historical data provided"}
-            
-            # Ensure we have a proper datetime index
-            if not isinstance(historical_data.index, pd.DatetimeIndex):
-                if 'Date' in historical_data.columns:
-                    historical_data = historical_data.set_index('Date')
+        # Prepare comprehensive results
+        results = {
+            "scenario_results": scenario_results,
+            "scenario_plot_path": scenario_plot_path,
+            "scenario_table_path": scenario_table_path
+        }
+        
+        return results
+                                if col.lower() in ['close', 'price', 'value', 'adjclose']]
+                
+                if price_columns:
+                    price_column = price_columns[0]
                 else:
-                    # Create a synthetic date index
-                    historical_data = historical_data.copy().reset_index(drop=True)
-                    end_date = datetime.now()
-                    start_date = end_date - timedelta(days=len(historical_data))
-                    historical_data.index = pd.date_range(start=start_date, periods=len(historical_data))
-            
-            # Extract price data based on column type
-            if isinstance(price_column, tuple):
-                # Handle multi-index columns
-                if len(price_column) != 2:
-                    return {"error": "For multi-index columns, price_column must be a tuple of (level0, level1)"}
-                
-                level0, level1 = price_column
-                if level0 not in historical_data.columns.levels[0] or level1 not in historical_data.columns.levels[1]:
-                    return {"error": f"Column {price_column} not found in data"}
-                
-                prices = historical_data[level0][level1]
-            else:
-                # Find the appropriate price column for regular columns
-                if price_column not in historical_data.columns:
-                    # Try to find an appropriate price column
-                    price_columns = [col for col in historical_data.columns 
-                                    if col.lower() in ['close', 'price', 'value', 'adjclose']]
-                
-                    if price_columns:
-                        price_column = price_columns[0]
+                    # If no suitable column found, use the first numeric column
+                    numeric_cols = [col for col in historical_data.columns 
+                                  if pd.api.types.is_numeric_dtype(historical_data[col])]
+                    if numeric_cols:
+                        price_column = numeric_cols[0]
                     else:
-                        # If no suitable column found, use the first numeric column
-                        numeric_cols = [col for col in historical_data.columns 
-                                      if pd.api.types.is_numeric_dtype(historical_data[col])]
-                        if numeric_cols:
-                            price_column = numeric_cols[0]
-                        else:
-                            return {"error": "No suitable price column found in data"}
-                
-                # Get the price data
-                prices = historical_data[price_column]
+                        return {"error": "No suitable price column found in data"}
             
             # Calculate historical returns and volatility
+            prices = historical_data[price_column]
             returns = prices.pct_change().dropna()
             
             # Calculate key statistics
@@ -1394,67 +1347,37 @@ class PredictiveAnalyticsTools:
                 'bear': {'daily_return': min(mean_return * -1, -0.0005), 'vol_multiplier': 1.5, 'description': 'Pessimistic outlook with negative returns and higher volatility'}
             }
             
-            # Use custom scenarios if provided or merge with defaults
-            if custom_scenarios:
-                # Convert custom scenarios to proper format if needed
-                processed_custom = {}
-                for scenario, params in custom_scenarios.items():
-                    if 'daily_return' not in params and 'drift_factor' in params:
-                        # Convert drift_factor to daily_return
-                        drift = params.get('drift_factor', 1.0)
-                        vol_mult = params.get('volatility_factor', 1.0)
-                        processed_custom[scenario] = {
-                            'daily_return': mean_return * drift,
-                            'vol_multiplier': vol_mult,
-                            'description': params.get('description', f'Custom scenario with drift={drift}, vol={vol_mult}')
-                        }
-                    else:
-                        processed_custom[scenario] = params
-                
-                # Merge with default scenarios to ensure we have all requested scenarios
-                scenario_params = default_scenarios.copy()
-                scenario_params.update(processed_custom)
-            else:
-                scenario_params = default_scenarios
+            # Use custom scenarios if provided
+            scenario_params = custom_scenarios if custom_scenarios else default_scenarios
             
             # Generate scenarios
             scenario_results = {}
-            scenario_stats = {}  # For return to test script
             all_simulations = {}  # Store all simulation paths for interactive plotting
             
-            # Generate forecast dates
-            try:
-                last_date = historical_data.index[-1]
-                forecast_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=forecast_periods)
-            except Exception as e:
-                return {"error": f"Error generating forecast dates: {str(e)}"}
-            
-            # Process each requested scenario
             for scenario in scenarios:
                 if scenario not in scenario_params:
-                    print(f"Warning: Scenario '{scenario}' not found in parameters, skipping.")
                     continue
                 
                 # Get scenario parameters
                 params = scenario_params[scenario]
-                daily_return = params.get('daily_return', mean_return)
-                vol = volatility * params.get('vol_multiplier', 1.0)
+                daily_return = params['daily_return']
+                vol = volatility * params['vol_multiplier']
                 
                 # Simulate future prices using Monte Carlo
                 simulation_df = pd.DataFrame()
                 all_paths = []  # Store all paths for this scenario
                 
                 for i in range(simulations):
-                    sim_prices = [float(last_price)]  # Ensure it's a float to avoid Series issues
+                    prices = [last_price]
                     
                     for j in range(forecast_periods):
                         # Generate random return from normal distribution
                         random_return = np.random.normal(daily_return, vol)
-                        next_price = sim_prices[-1] * (1 + random_return)
-                        sim_prices.append(next_price)
+                        next_price = prices[-1] * (1 + random_return)
+                        prices.append(next_price)
                     
-                    simulation_df[i] = sim_prices
-                    all_paths.append(sim_prices[1:])  # Skip the first element (last historical price)
+                    simulation_df[i] = prices
+                    all_paths.append(prices[1:])  # Skip the first element (last historical price)
                 
                 all_simulations[scenario] = all_paths
                 
@@ -1464,25 +1387,22 @@ class PredictiveAnalyticsTools:
                 upper_path = simulation_df.quantile(0.95, axis=1)
                 lower_path = simulation_df.quantile(0.05, axis=1)
                 
-                # Store results - ensure we have the right number of elements in each path
+                # Generate dates for forecast
                 try:
-                    # The simulation paths should start from index 1 (skipping the initial price)
-                    # but we need to ensure we don't exceed the forecast_periods
-                    path_length = len(forecast_dates)
+                    last_date = historical_data.index[-1]
+                    forecast_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=forecast_periods)
                     
-                    # Ensure all paths have the correct length
-                    mean_path_values = mean_path[1:path_length+1].tolist()
-                    median_path_values = median_path[1:path_length+1].tolist()
-                    upper_path_values = upper_path[1:path_length+1].tolist()
-                    lower_path_values = lower_path[1:path_length+1].tolist()
+                    # Make sure we have the right number of elements in each path
+                    # The simulation paths should start from index 1 (skipping the initial price)
+                    path_length = len(forecast_dates)
                     
                     # Store results
                     scenario_results[scenario] = {
                         'dates': forecast_dates.strftime('%Y-%m-%d').tolist(),
-                        'mean_path': mean_path_values,
-                        'median_path': median_path_values,
-                        'upper_path': upper_path_values,
-                        'lower_path': lower_path_values,
+                        'mean_path': mean_path[1:path_length+1].tolist(),  # Skip the first element (last historical price)
+                        'median_path': median_path[1:path_length+1].tolist(),
+                        'upper_path': upper_path[1:path_length+1].tolist(),
+                        'lower_path': lower_path[1:path_length+1].tolist(),
                         'final_mean_price': float(mean_path.iloc[-1]),
                         'final_median_price': float(median_path.iloc[-1]),
                         'final_upper_price': float(upper_path.iloc[-1]),
@@ -1492,30 +1412,10 @@ class PredictiveAnalyticsTools:
                         'best_case_return': float(((upper_path.iloc[-1] / last_price) - 1) * 100),
                         'description': params.get('description', '')
                     }
-                    
-                    # Also store in scenario_stats for the test script
-                    scenario_stats[scenario] = {
-                        'mean_final_price': float(mean_path.iloc[-1]),
-                        'median_final_price': float(median_path.iloc[-1]),
-                        'ci_lower': float(lower_path.iloc[-1]),
-                        'ci_upper': float(upper_path.iloc[-1]),
-                        'expected_return': float((mean_path.iloc[-1] / last_price) - 1)
-                    }
                 except Exception as e:
-                    print(f"Warning: Error processing scenario {scenario}: {str(e)}")
-                    continue
+                    return {"error": f"Error in scenario analysis date handling: {str(e)}"}
             
-            # Prepare output paths
-            output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'outputs', 'scenario_analysis')
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Generate timestamp for unique filenames
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            
-            # Create output paths with timestamp
-            scenario_plot_path = os.path.join(output_dir, f'scenario_analysis_{timestamp}.png')
-            scenario_table_path = os.path.join(output_dir, f'scenario_table_{timestamp}.png')
-            
+            # Create visualizations
             try:
                 # Use Plotly for interactive visualization if available
                 if PLOTLY_AVAILABLE:
@@ -1525,13 +1425,7 @@ class PredictiveAnalyticsTools:
                     # Plot historical data - use last 60 days or all if less
                     history_length = min(60, len(historical_data))
                     historical_dates = historical_data.index[-history_length:]
-                    
-                    # Handle multi-index columns for historical data
-                    if isinstance(price_column, tuple):
-                        level0, level1 = price_column
-                        historical_prices = historical_data[level0][level1].iloc[-history_length:]
-                    else:
-                        historical_prices = historical_data[price_column].iloc[-history_length:]
+                    historical_prices = historical_data[price_column].iloc[-history_length:]
                     
                     fig.add_trace(go.Scatter(
                         x=historical_dates,
@@ -1542,58 +1436,49 @@ class PredictiveAnalyticsTools:
                     ))
                     
                     # Plot each scenario
-                    colors = {'base': 'blue', 'bull': 'green', 'bear': 'red', 'optimistic': 'green', 'pessimistic': 'red', 'high_volatility': 'purple'}
+                    colors = {'base': 'blue', 'bull': 'green', 'bear': 'red'}
                     
                     for scenario, results in scenario_results.items():
+                        dates = pd.to_datetime(results['dates'])
+                        
+                        # Add mean path
+                        fig.add_trace(go.Scatter(
+                            x=dates,
+                            y=results['mean_path'],
+                            mode='lines',
+                            name=f'{scenario.capitalize()} Case',
+                            line=dict(color=colors.get(scenario, 'gray'), width=2)
+                        ))
+                        
+                        # Add confidence interval - ensure lists are the same length
                         try:
-                            dates = pd.to_datetime(results['dates'])
+                            upper_path = results['upper_path']
+                            lower_path = results['lower_path']
                             
-                            # Add mean path
+                            # Ensure both lists have the same length
+                            min_length = min(len(upper_path), len(lower_path))
+                            upper_path = upper_path[:min_length]
+                            lower_path = lower_path[:min_length]
+                            dates_list = list(dates)[:min_length]
+                            
                             fig.add_trace(go.Scatter(
-                                x=dates,
-                                y=results['mean_path'],
-                                mode='lines',
-                                name=f'{scenario.capitalize()} Case',
-                                line=dict(color=colors.get(scenario, 'gray'), width=2)
+                                x=dates_list + dates_list[::-1],
+                                y=upper_path + lower_path[::-1],
+                                fill='toself',
+                                fillcolor=f'rgba({"0,0,255" if scenario == "base" else "0,128,0" if scenario == "bull" else "255,0,0"},0.2)',
+                                line=dict(color='rgba(255,255,255,0)'),
+                                name=f'{scenario.capitalize()} 90% Confidence',
+                                showlegend=False
                             ))
-                            
-                            # Add confidence interval - ensure lists are the same length
-                            try:
-                                upper_path = results['upper_path']
-                                lower_path = results['lower_path']
-                                
-                                # Ensure both lists have the same length
-                                min_length = min(len(upper_path), len(lower_path))
-                                upper_path = upper_path[:min_length]
-                                lower_path = lower_path[:min_length]
-                                dates_list = list(dates)[:min_length]
-                                
-                                fig.add_trace(go.Scatter(
-                                    x=dates_list + dates_list[::-1],
-                                    y=upper_path + lower_path[::-1],
-                                    fill='toself',
-                                    fillcolor=f'rgba({"0,0,255" if scenario == "base" else "0,128,0" if scenario == "bull" else "255,0,0"},0.2)',
-                                    line=dict(color='rgba(255,255,255,0)'),
-                                    name=f'{scenario.capitalize()} 90% Confidence',
-                                    showlegend=False
-                                ))
-                            except Exception as e:
-                                print(f"Warning: Could not add confidence interval for {scenario}: {str(e)}")
                         except Exception as e:
-                            print(f"Warning: Could not plot scenario {scenario}: {str(e)}")
+                            print(f"Warning: Could not add confidence interval for {scenario}: {str(e)}")
+                            # Continue without the confidence interval
                     
-                    # Get symbol from price_column if it's a tuple, otherwise use a generic title
-                    if isinstance(price_column, tuple):
-                        symbol_name = price_column[1]
-                    else:
-                        symbol_name = "Asset"
-                    
-                    # Update layout and save figure
+                    # Add layout details
                     fig.update_layout(
-                        title=f'{symbol_name} Price Scenario Analysis',
+                        title='Monte Carlo Scenario Analysis',
                         xaxis_title='Date',
                         yaxis_title='Price',
-                        legend_title='Scenarios',
                         hovermode='x unified',
                         legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
                         height=600,
@@ -1641,112 +1526,78 @@ class PredictiveAnalyticsTools:
                     plt.figure(figsize=(12, 6))
                     
                     # Plot historical data - use last 30 days or all if less
-                    try:
-                        history_length = min(30, len(historical_data))
-                        historical_dates = historical_data.index[-history_length:]
-                        
-                        # Handle multi-index columns for historical data
-                        if isinstance(price_column, tuple):
-                            level0, level1 = price_column
-                            historical_prices = historical_data[level0][level1].iloc[-history_length:]
-                        else:
-                            historical_prices = historical_data[price_column].iloc[-history_length:]
-                            
-                        plt.plot(historical_dates, historical_prices, label='Historical', color='black')
-                    except Exception as e:
-                        print(f"Warning: Could not plot historical data: {str(e)}")
+                    history_length = min(30, len(historical_data))
+                    historical_dates = historical_data.index[-history_length:]
+                    historical_prices = historical_data[price_column].iloc[-history_length:]
+                    plt.plot(historical_dates, historical_prices, label='Historical', color='black')
                     
                     # Plot each scenario
-                    colors = {'base': 'blue', 'bull': 'green', 'bear': 'red', 'optimistic': 'green', 'pessimistic': 'red', 'high_volatility': 'purple'}
+                    colors = {'base': 'blue', 'bull': 'green', 'bear': 'red'}
                     
-                    # Check if we have any scenarios to plot
-                    if len(scenario_results) > 0:
-                        for scenario, results in scenario_results.items():
-                            try:
-                                # Get the data for this scenario
-                                dates = pd.to_datetime(results['dates'])
-                                mean_path = results['mean_path']
-                                lower_path = results['lower_path']
-                                upper_path = results['upper_path']
-                                
-                                # Ensure all arrays have the same length
-                                min_length = min(len(dates), len(mean_path), len(lower_path), len(upper_path))
-                                dates = dates[:min_length]
-                                mean_path = mean_path[:min_length]
-                                lower_path = lower_path[:min_length]
-                                upper_path = upper_path[:min_length]
-                                
-                                plt.plot(dates, mean_path, label=f'{scenario.capitalize()} Case', color=colors.get(scenario, 'gray'))
-                                plt.fill_between(dates, lower_path, upper_path, alpha=0.2, color=colors.get(scenario, 'gray'))
-                            except Exception as e:
-                                print(f"Warning: Could not plot scenario {scenario}: {str(e)}")
-                    else:
-                        print("Warning: No scenarios to plot")
-                        # Add a simple text to the plot
-                        plt.text(0.5, 0.5, 'No scenarios to display', horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
+                    for scenario, results in scenario_results.items():
+                        try:
+                            dates = pd.to_datetime(results['dates'])
+                            mean_path = results['mean_path']
+                            lower_path = results['lower_path']
+                            upper_path = results['upper_path']
+                            
+                            # Ensure all arrays have the same length
+                            min_length = min(len(dates), len(mean_path), len(lower_path), len(upper_path))
+                            dates = dates[:min_length]
+                            mean_path = mean_path[:min_length]
+                            lower_path = lower_path[:min_length]
+                            upper_path = upper_path[:min_length]
+                            
+                            plt.plot(dates, mean_path, label=f'{scenario.capitalize()} Case', color=colors.get(scenario, 'gray'))
+                            plt.fill_between(dates, lower_path, upper_path, alpha=0.2, color=colors.get(scenario, 'gray'))
+                        except Exception as e:
+                            print(f"Warning: Could not plot scenario {scenario}: {str(e)}")
+                            # Continue without this scenario
                     
-                    # Add title and labels
-                    # Get symbol from price_column if it's a tuple, otherwise use a generic title
-                    if isinstance(price_column, tuple):
-                        symbol_name = price_column[1]
-                    else:
-                        symbol_name = "Asset"
-                        
-                    plt.title(f'{symbol_name} Price Scenario Analysis')
+                    plt.title('Monte Carlo Scenario Analysis')
                     plt.xlabel('Date')
                     plt.ylabel('Price')
                     plt.legend()
                     
-                    # Save the plot
+                    # Save plot
+                    scenario_plot_path = '/tmp/scenario_analysis.png'
                     plt.savefig(scenario_plot_path)
                     plt.close()
                     
-                    # Create a table with scenario statistics using matplotlib
-                    try:
-                        if len(scenario_results) > 0:
-                            # Create a matplotlib table
-                            fig, ax = plt.subplots(figsize=(10, 3))
-                            ax.axis('tight')
-                            ax.axis('off')
-                            
-                            table_data = []
-                            for scenario, results in scenario_results.items():
-                                try:
-                                    table_data.append([
-                                        scenario.capitalize(),
-                                        f"${results.get('final_mean_price', 0):.2f}",
-                                        f"{results.get('expected_return', 0):.2f}%",
-                                        f"{results.get('worst_case_return', 0):.2f}%",
-                                        f"{results.get('best_case_return', 0):.2f}%"
-                                    ])
-                                except Exception as e:
-                                    print(f"Warning: Could not add scenario {scenario} to table: {str(e)}")
-                                    continue
-                            
-                            if len(table_data) > 0:
-                                # Create table
-                                table = ax.table(cellText=table_data,
-                                               colLabels=['Scenario', 'Final Price', 'Expected Return', 'Worst Case', 'Best Case'],
-                                               loc='center')
-                                
-                                table.auto_set_font_size(False)
-                                table.set_fontsize(10)
-                                table.scale(1.2, 1.2)
-                                
-                                plt.title(f'{symbol_name} Scenario Analysis Summary')
-                                
-                                # Save table
-                                plt.savefig(scenario_table_path)
-                                plt.close()
-                    except Exception as e:
-                        print(f"Warning: Could not create scenario table: {str(e)}")
+                    # Create a table with scenario statistics
+                    fig, ax = plt.subplots(figsize=(10, 3))
+                    ax.axis('tight')
+                    ax.axis('off')
+                    
+                    table_data = []
+                    for scenario in scenario_results.keys():
+                        s = scenario_results[scenario]
+                        table_data.append([scenario.capitalize(), 
+                                          f"${s['final_mean_price']:.2f}", 
+                                          f"{s['expected_return']:.2f}%", 
+                                          f"{s['worst_case_return']:.2f}%", 
+                                          f"{s['best_case_return']:.2f}%"])
+                    
+                    table = ax.table(cellText=table_data,
+                                   colLabels=['Scenario', 'Final Price', 'Expected Return', 'Worst Case', 'Best Case'],
+                                   loc='center')
+                    
+                    table.auto_set_font_size(False)
+                    table.set_fontsize(10)
+                    table.scale(1.2, 1.2)
+                    
+                    plt.title('Scenario Analysis Summary')
+                    
+                    # Save table
+                    scenario_table_path = '/tmp/scenario_table.png'
+                    plt.savefig(scenario_table_path)
+                    plt.close()
             except Exception as e:
                 return {"error": f"Error in scenario analysis visualization: {str(e)}"}
             
             # Return comprehensive results
             return {
                 "scenarios": scenario_results,
-                "scenario_stats": scenario_stats,  # For the test script
                 "last_price": float(last_price),
                 "forecast_periods": forecast_periods,
                 "simulations": simulations,
@@ -1757,7 +1608,7 @@ class PredictiveAnalyticsTools:
                     "annualized_volatility": float(volatility * np.sqrt(252) * 100)  # Annualized percentage
                 },
                 "scenario_plot_path": scenario_plot_path,
-                "scenario_table_path": scenario_table_path
+                "scenario_table_path": locals().get('scenario_table_path', None)
             }
             
         except Exception as e:
