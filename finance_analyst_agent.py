@@ -829,8 +829,33 @@ class FinanceAnalystReActAgent:
                             periods = 90
                         elif "year" in query.lower():
                             periods = 365
+                        
+                        # Ensure historical_data is properly formatted for Prophet
+                        try:
+                            # Make a copy to avoid modifying the original data
+                            prophet_data = historical_data.copy()
                             
-                        results[tool_name] = tool_function(historical_data, periods=periods)
+                            # Check if we have a DatetimeIndex
+                            if isinstance(prophet_data.index, pd.DatetimeIndex):
+                                prophet_data.reset_index(inplace=True)
+                                prophet_data.rename(columns={'index': 'ds', 'Close': 'y'}, inplace=True)
+                            
+                            # If we already have 'Date' column, rename it
+                            if 'Date' in prophet_data.columns:
+                                prophet_data.rename(columns={'Date': 'ds', 'Close': 'y'}, inplace=True)
+                            
+                            # Ensure we have 'ds' and 'y' columns for Prophet
+                            if 'ds' not in prophet_data.columns or 'y' not in prophet_data.columns:
+                                # Create them from scratch if needed
+                                if isinstance(historical_data.index, pd.DatetimeIndex):
+                                    prophet_data = pd.DataFrame({
+                                        'ds': historical_data.index,
+                                        'y': historical_data['Close']
+                                    })
+                            
+                            results[tool_name] = tool_function(prophet_data, periods=periods)
+                        except Exception as e:
+                            results[tool_name] = {"error": f"Error preparing data for Prophet: {str(e)}"}
                         
                     elif tool_name == "forecast_with_lstm":
                         # Configure LSTM parameters
@@ -880,9 +905,44 @@ class FinanceAnalystReActAgent:
                             forecast_periods = 252  # Trading days in a year
                             
                         # Define scenarios based on query
-                        scenarios = None  # Use default scenarios
+                        scenarios = ['base', 'bull', 'bear']  # Use explicit default scenarios
                         
-                        results[tool_name] = tool_function(historical_data, price_column='Close', scenarios=scenarios, forecast_periods=forecast_periods)
+                        try:
+                            # Ensure historical_data has the required format
+                            if 'Close' not in historical_data.columns:
+                                # Try to find an appropriate price column
+                                price_columns = [col for col in historical_data.columns 
+                                                if col.lower() in ['close', 'price', 'value', 'adjclose']]
+                                
+                                if price_columns:
+                                    price_column = price_columns[0]
+                                else:
+                                    # If no suitable column found, use the first numeric column
+                                    numeric_cols = [col for col in historical_data.columns 
+                                                  if pd.api.types.is_numeric_dtype(historical_data[col])]
+                                    if numeric_cols:
+                                        price_column = numeric_cols[0]
+                                    else:
+                                        results[tool_name] = {"error": "No suitable price column found in data"}
+                                        continue
+                            else:
+                                price_column = 'Close'
+                                
+                            # Ensure we have a proper datetime index
+                            if not isinstance(historical_data.index, pd.DatetimeIndex):
+                                if 'Date' in historical_data.columns:
+                                    historical_data = historical_data.set_index('Date')
+                                else:
+                                    # Create a synthetic date index
+                                    historical_data = historical_data.reset_index(drop=True)
+                                    end_date = datetime.now()
+                                    start_date = end_date - timedelta(days=len(historical_data))
+                                    historical_data.index = pd.date_range(start=start_date, periods=len(historical_data))
+                            
+                            results[tool_name] = tool_function(historical_data, price_column=price_column, 
+                                                            scenarios=scenarios, forecast_periods=forecast_periods)
+                        except Exception as e:
+                            results[tool_name] = {"error": f"Error in scenario analysis: {str(e)}"}
                         
                     elif tool_name == "check_stationarity":
                         # Check stationarity of the time series

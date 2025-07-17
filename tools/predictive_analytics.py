@@ -121,42 +121,37 @@ class PredictiveAnalyticsTools:
                 weekly_seasonality=weekly_seasonality,
                 daily_seasonality=daily_seasonality
             )
-            
             model.fit(df)
             
             # Make future dataframe and predict
             future = model.make_future_dataframe(periods=periods)
             forecast = model.predict(future)
             
-            # Extract components
-            fig_components = model.plot_components(forecast)
-            fig_forecast = model.plot(forecast)
+            # Calculate trend metrics
+            trend_change = (forecast['trend'].iloc[-1] / forecast['trend'].iloc[0] - 1) * 100
+            trend_direction = "Upward" if trend_change > 0 else "Downward"
             
-            # Save figures to temporary files
-            component_path = '/tmp/prophet_components.png'
-            forecast_path = '/tmp/prophet_forecast.png'
+            # Plot the forecast
+            fig1 = model.plot(forecast)
+            fig2 = model.plot_components(forecast)
             
-            fig_components.savefig(component_path)
-            fig_forecast.savefig(forecast_path)
-            plt.close(fig_components)
-            plt.close(fig_forecast)
+            # Save plots
+            forecast_plot_path = '/tmp/prophet_forecast.png'
+            components_plot_path = '/tmp/prophet_components.png'
+            fig1.savefig(forecast_plot_path)
+            fig2.savefig(components_plot_path)
+            plt.close(fig1)
+            plt.close(fig2)
             
-            # Extract key metrics
-            last_date = df['ds'].max()
-            forecast_start = last_date + timedelta(days=1)
-            
-            forecast_data = forecast[forecast['ds'] >= forecast_start]
-            historical_with_fitted = forecast[forecast['ds'] <= last_date]
+            # Extract relevant data for return
+            forecast_data = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(periods).to_dict('records')
             
             return {
-                "forecast": forecast_data[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].to_dict('records'),
-                "historical_fitted": historical_with_fitted[['ds', 'yhat']].to_dict('records'),
-                "forecast_plot_path": forecast_path,
-                "components_plot_path": component_path,
-                "trend_direction": "up" if forecast_data['yhat'].iloc[-1] > forecast_data['yhat'].iloc[0] else "down",
-                "trend_change_percent": ((forecast_data['yhat'].iloc[-1] / forecast_data['yhat'].iloc[0]) - 1) * 100,
-                "confidence_interval_width": (forecast_data['yhat_upper'] - forecast_data['yhat_lower']).mean(),
-                "forecast_periods": periods
+                "forecast_data": forecast_data,
+                "trend_change_percent": float(trend_change),
+                "trend_direction": trend_direction,
+                "forecast_plot_path": forecast_plot_path,
+                "components_plot_path": components_plot_path
             }
             
         except Exception as e:
@@ -164,19 +159,21 @@ class PredictiveAnalyticsTools:
     
     @staticmethod
     def forecast_with_lstm(historical_data: pd.DataFrame, 
-                          target_column: str = 'Close',
+                          price_column: str = 'Close',
                           sequence_length: int = 60,
                           forecast_periods: int = 30,
+                          train_split: float = 0.8,
                           epochs: int = 50,
                           batch_size: int = 32) -> Dict:
         """
         Forecast future values using LSTM neural network
         
         Args:
-            historical_data: DataFrame with time series data
-            target_column: Column to forecast
-            sequence_length: Number of previous time steps to use for prediction
+            historical_data: DataFrame with price data
+            price_column: Column with price data
+            sequence_length: Number of previous time steps to use as input features
             forecast_periods: Number of periods to forecast
+            train_split: Proportion of data to use for training
             epochs: Number of training epochs
             batch_size: Batch size for training
             
@@ -184,30 +181,32 @@ class PredictiveAnalyticsTools:
             Dictionary with forecast results
         """
         if not TENSORFLOW_AVAILABLE:
-            return {"error": "TensorFlow not available. Cannot use LSTM models."}
+            return {"error": "TensorFlow not available."}
         
         try:
-            # Extract target data
-            if target_column not in historical_data.columns:
-                return {"error": f"Target column '{target_column}' not found in data"}
+            # Check if we have valid data
+            if price_column not in historical_data.columns:
+                return {"error": f"Price column '{price_column}' not found in data"}
             
-            data = historical_data[target_column].values.reshape(-1, 1)
+            # Extract price data
+            data = historical_data[price_column].values.reshape(-1, 1)
             
             # Normalize data
             scaler = MinMaxScaler(feature_range=(0, 1))
             scaled_data = scaler.fit_transform(data)
             
-            # Create sequences
+            # Create sequences for training
             X, y = [], []
             for i in range(sequence_length, len(scaled_data)):
                 X.append(scaled_data[i-sequence_length:i, 0])
                 y.append(scaled_data[i, 0])
-            
             X, y = np.array(X), np.array(y)
+            
+            # Reshape X to be [samples, time steps, features]
             X = np.reshape(X, (X.shape[0], X.shape[1], 1))
             
-            # Split data into train and test sets
-            train_size = int(len(X) * 0.8)
+            # Split into train and test sets
+            train_size = int(len(X) * train_split)
             X_train, X_test = X[:train_size], X[train_size:]
             y_train, y_test = y[:train_size], y[train_size:]
             
@@ -219,55 +218,51 @@ class PredictiveAnalyticsTools:
             model.add(Dropout(0.2))
             model.add(Dense(units=1))
             
+            # Compile and train
             model.compile(optimizer='adam', loss='mean_squared_error')
+            model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=0)
             
-            # Train model
-            history = model.fit(
-                X_train, y_train,
-                epochs=epochs,
-                batch_size=batch_size,
-                validation_data=(X_test, y_test),
-                verbose=0
-            )
-            
-            # Make predictions on test data
-            test_predictions = model.predict(X_test)
-            test_predictions = scaler.inverse_transform(test_predictions)
-            y_test_actual = scaler.inverse_transform(y_test.reshape(-1, 1))
-            
-            # Calculate RMSE
-            rmse = np.sqrt(np.mean(np.square(test_predictions - y_test_actual)))
+            # Evaluate on test set
+            y_pred = model.predict(X_test)
+            rmse = np.sqrt(np.mean(np.square(y_pred - y_test)))
             
             # Forecast future values
+            input_data = scaled_data[-sequence_length:].copy()
             future_predictions = []
-            current_batch = scaled_data[-sequence_length:].reshape((1, sequence_length, 1))
             
             for i in range(forecast_periods):
-                current_pred = model.predict(current_batch)[0]
-                future_predictions.append(current_pred)
-                current_batch = np.append(current_batch[:, 1:, :], [[current_pred]], axis=1)
+                # Reshape for prediction
+                x_input = input_data[-sequence_length:].reshape(1, sequence_length, 1)
+                
+                # Predict next value
+                next_val = model.predict(x_input)[0][0]
+                future_predictions.append(next_val)
+                
+                # Update input data for next prediction
+                input_data = np.append(input_data, [[next_val]], axis=0)
             
-            # Inverse transform predictions
-            future_predictions = np.array(future_predictions).reshape(-1, 1)
-            future_predictions = scaler.inverse_transform(future_predictions)
+            # Inverse transform to get actual values
+            future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
             
             # Generate dates for forecast
             last_date = historical_data.index[-1] if isinstance(historical_data.index, pd.DatetimeIndex) else datetime.now()
-            forecast_dates = pd.date_range(start=last_date + timedelta(days=1), periods=forecast_periods)
-            
-            # Create forecast DataFrame
-            forecast_df = pd.DataFrame({
-                'Date': forecast_dates,
-                'Forecast': future_predictions.flatten()
-            })
+            forecast_dates = pd.date_range(start=last_date, periods=forecast_periods+1)[1:]
             
             # Plot results
             plt.figure(figsize=(12, 6))
-            plt.plot(historical_data.index[-100:], historical_data[target_column].values[-100:], label='Historical')
-            plt.plot(forecast_df['Date'], forecast_df['Forecast'], label='Forecast')
+            
+            # Plot historical data (last 100 points)
+            hist_length = min(100, len(data))
+            if isinstance(historical_data.index, pd.DatetimeIndex):
+                plt.plot(historical_data.index[-hist_length:], data[-hist_length:], label='Historical')
+            else:
+                plt.plot(range(hist_length), data[-hist_length:], label='Historical')
+            
+            # Plot forecast
+            plt.plot(forecast_dates, future_predictions, label='LSTM Forecast', color='red')
             plt.title('LSTM Forecast')
             plt.xlabel('Date')
-            plt.ylabel(target_column)
+            plt.ylabel('Price')
             plt.legend()
             
             # Save plot
@@ -275,20 +270,16 @@ class PredictiveAnalyticsTools:
             plt.savefig(forecast_plot_path)
             plt.close()
             
-            # Calculate trend direction and change
-            trend_direction = "up" if future_predictions[-1] > future_predictions[0] else "down"
-            trend_change_percent = ((future_predictions[-1][0] / future_predictions[0][0]) - 1) * 100
+            # Prepare forecast data
+            forecast_data = [
+                {"date": date.strftime('%Y-%m-%d'), "value": float(value[0])}
+                for date, value in zip(forecast_dates, future_predictions)
+            ]
             
             return {
-                "forecast": forecast_df.to_dict('records'),
+                "forecast_data": forecast_data,
                 "rmse": float(rmse),
-                "forecast_plot_path": forecast_plot_path,
-                "trend_direction": trend_direction,
-                "trend_change_percent": float(trend_change_percent),
-                "forecast_periods": forecast_periods,
-                "last_known_value": float(data[-1][0]),
-                "forecast_start_date": forecast_dates[0].strftime('%Y-%m-%d'),
-                "forecast_end_date": forecast_dates[-1].strftime('%Y-%m-%d')
+                "forecast_plot_path": forecast_plot_path
             }
             
         except Exception as e:
@@ -437,6 +428,10 @@ class PredictiveAnalyticsTools:
             Dictionary with scenario analysis results
         """
         try:
+            # Check if we have valid data
+            if historical_data is None or historical_data.empty:
+                return {"error": "No historical data provided"}
+                
             # Calculate historical returns and volatility
             if price_column not in historical_data.columns:
                 return {"error": f"Price column '{price_column}' not found in data"}
@@ -465,7 +460,7 @@ class PredictiveAnalyticsTools:
                 vol = volatility * params['vol_multiplier']
                 
                 # Simulate future prices using Monte Carlo
-                simulations = 1000
+                simulations = 100  # Reduced from 1000 for performance
                 simulation_df = pd.DataFrame()
                 
                 for i in range(simulations):
@@ -480,107 +475,72 @@ class PredictiveAnalyticsTools:
                     simulation_df[i] = prices
                 
                 # Calculate statistics from simulations
+                mean_path = simulation_df.mean(axis=1)
+                upper_path = simulation_df.quantile(0.95, axis=1)
+                lower_path = simulation_df.quantile(0.05, axis=1)
                 
-# Generate dates for forecast
-try:
-if isinstance(historical_data.index, pd.DatetimeIndex):
-last_date = historical_data.index[-1]
-elif 'Date' in historical_data.columns:
-last_date = historical_data['Date'].iloc[-1]
-else:
-last_date = datetime.now()
+                # Generate dates for forecast
+                try:
+                    if isinstance(historical_data.index, pd.DatetimeIndex):
+                        last_date = historical_data.index[-1]
+                    elif 'Date' in historical_data.columns:
+                        last_date = historical_data['Date'].iloc[-1]
+                    else:
+                        last_date = datetime.now()
+                        
+                    # Ensure last_date is a datetime object
+                    if not isinstance(last_date, (datetime, pd.Timestamp)):
+                        last_date = pd.to_datetime(last_date)
+                        
+                    forecast_dates = pd.date_range(start=last_date, periods=forecast_periods + 1)
                     
-# Ensure last_date is a datetime object
-if not isinstance(last_date, (datetime, pd.Timestamp)):
-last_date = pd.to_datetime(last_date)
-                    
-forecast_dates = pd.date_range(start=last_date, periods=forecast_periods + 1)
-                    
-# Store results
-scenario_results[scenario] = {
-'dates': forecast_dates.strftime('%Y-%m-%d').tolist(),
-'mean_path': mean_path.tolist(),
-'upper_path': upper_path.tolist(),
-'lower_path': lower_path.tolist(),
-'final_mean_price': float(mean_path.iloc[-1]),
-'final_upper_price': float(upper_path.iloc[-1]),
-'final_lower_price': float(lower_path.iloc[-1]),
-'expected_return': float(((mean_path.iloc[-1] / last_price) - 1) * 100),
-'worst_case_return': float(((lower_path.iloc[-1] / last_price) - 1) * 100),
-'best_case_return': float(((upper_path.iloc[-1] / last_price) - 1) * 100)
-}
-                
-except Exception as e:
-return {"error": f"Error in scenario analysis: {str(e)}"}
-                
-# Plot scenarios
-plt.figure(figsize=(12, 6))
-                
-# Plot historical data
-historical_dates = historical_data.index[-30:]
-historical_prices = historical_data[price_column].iloc[-30:]
-plt.plot(historical_dates, historical_prices, label='Historical', color='black')
-                
-# Plot each scenario
-colors = {'base': 'blue', 'bull': 'green', 'bear': 'red'}
-                
-for scenario, results in scenario_results.items():
-plt.plot(results['dates'], results['mean_path'], label=f'{scenario.capitalize()} Case', color=colors.get(scenario, 'gray'))
-plt.fill_between(results['dates'], results['lower_path'], results['upper_path'], alpha=0.2, color=colors.get(scenario, 'gray'))
-                
-plt.title('Scenario Analysis')
-plt.xlabel('Date')
-plt.ylabel('Price')
-plt.legend()
-                
-# Save plot
-scenario_plot_path = '/tmp/scenario_analysis.png'
-plt.savefig(scenario_plot_path)
-plt.close()
-                
-return {
-"scenarios": scenario_results,
-"scenario_plot_path": scenario_plot_path,
-"last_price": float(last_price),
-"forecast_periods": forecast_periods
-}
-                
-except Exception as e:
-return {"error": f"Error in scenario analysis: {str(e)}"}
-                    'upper_path': upper_path.tolist(),
-                    'lower_path': lower_path.tolist(),
-                    'final_mean_price': float(mean_path.iloc[-1]),
-                    'final_upper_price': float(upper_path.iloc[-1]),
-                    'final_lower_price': float(lower_path.iloc[-1]),
-                    'expected_return': float(((mean_path.iloc[-1] / last_price) - 1) * 100),
-                    'worst_case_return': float(((lower_path.iloc[-1] / last_price) - 1) * 100),
-                    'best_case_return': float(((upper_path.iloc[-1] / last_price) - 1) * 100)
-                }
+                    # Store results
+                    scenario_results[scenario] = {
+                        'dates': forecast_dates.strftime('%Y-%m-%d').tolist(),
+                        'mean_path': mean_path.tolist(),
+                        'upper_path': upper_path.tolist(),
+                        'lower_path': lower_path.tolist(),
+                        'final_mean_price': float(mean_path.iloc[-1]),
+                        'final_upper_price': float(upper_path.iloc[-1]),
+                        'final_lower_price': float(lower_path.iloc[-1]),
+                        'expected_return': float(((mean_path.iloc[-1] / last_price) - 1) * 100),
+                        'worst_case_return': float(((lower_path.iloc[-1] / last_price) - 1) * 100),
+                        'best_case_return': float(((upper_path.iloc[-1] / last_price) - 1) * 100)
+                    }
+                except Exception as e:
+                    return {"error": f"Error in scenario analysis date handling: {str(e)}"}
             
             # Plot scenarios
-            plt.figure(figsize=(12, 6))
-            
-            # Plot historical data
-            historical_dates = historical_data.index[-30:]
-            historical_prices = historical_data[price_column].iloc[-30:]
-            plt.plot(historical_dates, historical_prices, label='Historical', color='black')
-            
-            # Plot each scenario
-            colors = {'base': 'blue', 'bull': 'green', 'bear': 'red'}
-            
-            for scenario, results in scenario_results.items():
-                plt.plot(results['dates'], results['mean_path'], label=f'{scenario.capitalize()} Case', color=colors.get(scenario, 'gray'))
-                plt.fill_between(results['dates'], results['lower_path'], results['upper_path'], alpha=0.2, color=colors.get(scenario, 'gray'))
-            
-            plt.title('Scenario Analysis')
-            plt.xlabel('Date')
-            plt.ylabel('Price')
-            plt.legend()
-            
-            # Save plot
-            scenario_plot_path = '/tmp/scenario_analysis.png'
-            plt.savefig(scenario_plot_path)
-            plt.close()
+            try:
+                plt.figure(figsize=(12, 6))
+                
+                # Plot historical data - use last 30 days or all if less
+                history_length = min(30, len(historical_data))
+                
+                if isinstance(historical_data.index, pd.DatetimeIndex):
+                    historical_dates = historical_data.index[-history_length:]
+                    historical_prices = historical_data[price_column].iloc[-history_length:]
+                    plt.plot(historical_dates, historical_prices, label='Historical', color='black')
+                
+                # Plot each scenario
+                colors = {'base': 'blue', 'bull': 'green', 'bear': 'red'}
+                
+                for scenario, results in scenario_results.items():
+                    dates = pd.to_datetime(results['dates'])
+                    plt.plot(dates, results['mean_path'], label=f'{scenario.capitalize()} Case', color=colors.get(scenario, 'gray'))
+                    plt.fill_between(dates, results['lower_path'], results['upper_path'], alpha=0.2, color=colors.get(scenario, 'gray'))
+                
+                plt.title('Scenario Analysis')
+                plt.xlabel('Date')
+                plt.ylabel('Price')
+                plt.legend()
+                
+                # Save plot
+                scenario_plot_path = '/tmp/scenario_analysis.png'
+                plt.savefig(scenario_plot_path)
+                plt.close()
+            except Exception as e:
+                return {"error": f"Error in scenario analysis plotting: {str(e)}"}
             
             return {
                 "scenarios": scenario_results,
