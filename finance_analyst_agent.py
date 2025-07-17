@@ -23,20 +23,23 @@ if not GEMINI_API_KEY:
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Initialize Gemini model - use the correct model name
-try:
-    # First try with the standard model name
-    model = genai.GenerativeModel('gemini-pro')
-    print("Using gemini-pro model")
-except Exception as e:
-    # If that fails, try with gemini-1.0-pro
+# Initialize Gemini model - try multiple model names and versions
+model = None
+model_names = ['gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-pro']
+
+for model_name in model_names:
     try:
-        model = genai.GenerativeModel('gemini-1.0-pro')
-        print("Using gemini-1.0-pro model")
+        model = genai.GenerativeModel(model_name)
+        print(f"Successfully initialized Gemini model: {model_name}")
+        break  # Exit the loop if successful
     except Exception as e:
-        print(f"Warning: Could not initialize Gemini model: {str(e)}")
-        print("Will use raw data without AI analysis")
-        model = None
+        print(f"Could not initialize model {model_name}: {str(e)}")
+
+if model is None:
+    print("Warning: Could not initialize any Gemini model. Will use raw data without AI analysis.")
+    print("Please check your API key and ensure you have access to Gemini models.")
+    print("You can still use the agent's tools for financial analysis.")
+
 
 # Define stock analysis tools
 class StockTools:
