@@ -15,6 +15,7 @@ import traceback
 from typing import Dict, List, Any, Tuple, Optional, Union
 from tools.alpha_vantage_tools import AlphaVantageTools
 from tools.predictive_analytics import PredictiveAnalyticsTools
+from tools.fundamental_analysis import FundamentalAnalysisTools
 
 load_dotenv()
 
@@ -345,7 +346,15 @@ class FinanceAnalystReActAgent:
             "detect_anomalies": PredictiveAnalyticsTools.detect_anomalies,
             "calculate_volatility": PredictiveAnalyticsTools.calculate_volatility,
             "scenario_analysis": PredictiveAnalyticsTools.scenario_analysis,
-            "check_stationarity": PredictiveAnalyticsTools.check_stationarity
+            "check_stationarity": PredictiveAnalyticsTools.check_stationarity,
+            
+            # Fundamental Analysis tools
+            "get_financial_ratios": FundamentalAnalysisTools.get_financial_ratios,
+            "get_income_statement": FundamentalAnalysisTools.get_income_statement,
+            "get_balance_sheet": FundamentalAnalysisTools.get_balance_sheet,
+            "get_cash_flow": FundamentalAnalysisTools.get_cash_flow,
+            "format_financial_ratios": FundamentalAnalysisTools.format_financial_ratios_for_display,
+            "get_industry_comparison": FundamentalAnalysisTools.get_industry_comparison
         }
         
         self.system_prompt = """
@@ -377,6 +386,14 @@ class FinanceAnalystReActAgent:
         16. calculate_volatility(historical_data, price_column, window_size): Calculate historical volatility and forecast future volatility
         17. scenario_analysis(historical_data, price_column, scenarios, forecast_periods): Perform scenario analysis for different market conditions
         18. check_stationarity(time_series): Check if a time series is stationary using the Augmented Dickey-Fuller test
+        
+        FUNDAMENTAL ANALYSIS TOOLS:
+        19. get_financial_ratios(symbol): Get key financial ratios including P/E, PEG, P/S, P/B, D/E, ROE, and EPS
+        20. get_income_statement(symbol, period): Get income statement data (revenue, expenses, profits)
+        21. get_balance_sheet(symbol, period): Get balance sheet data (assets, liabilities, equity)
+        22. get_cash_flow(symbol, period): Get cash flow statement data (operating, investing, financing activities)
+        23. format_financial_ratios(ratios): Format financial ratios for display
+        24. get_industry_comparison(symbol, ratios): Compare a stock's financial ratios to industry averages
         
         When a user asks a question about a stock, you should follow the ReAct pattern:
         1. REASON: Think about what information is needed to answer the query
