@@ -55,20 +55,84 @@ Example queries:
 - "Create a visualization of GOOG with bollinger bands"
 - "Give me a complete technical analysis of META"
 
+## Architecture
+
+### Agent Framework
+The enhanced system uses a modular multi-agent architecture:
+
+1. **Base Agent**: Core functionality for all specialized agents
+   - Gemini AI model initialization
+   - Tool registration and execution
+   - Response generation
+
+2. **Specialized Agents**:
+   - **Technical Analysis Agent**: Chart patterns, indicators, price data
+   - **Fundamental Analysis Agent**: Financial statements, ratios, company profiles
+   - **Risk Analysis Agent**: Volatility, VaR, portfolio risk
+   - **Trading Agent**: Trading signals, backtesting, execution
+   - **Sentiment Analysis Agent**: News sentiment, social media analysis, market perception
+
+3. **Agent Orchestrator**: Coordinates the specialized agents
+   - Query classification
+   - Agent dispatching
+   - Response synthesis
+
+4. **Agent Memory**: Persistent memory system
+   - Conversation history
+   - Analysis results
+   - User preferences
+   - Watched symbols
+   - Alerts
+
+### Integration Modules
+- **LangChain Integration**: Advanced agent capabilities
+- **CrewAI Integration**: Multi-agent collaboration workflows
+
 ## Tools
 
-The agent has access to the following tools:
+### Technical Analysis Tools
+- Historical price data retrieval
+- Technical indicator calculation (RSI, MACD, Bollinger Bands, etc.)
+- Chart pattern recognition
+- Support/resistance identification
+- Trend analysis
+- Technical visualization
 
-1. `get_stock_price(symbol)`: Get the current price of a stock
-2. `get_stock_history(symbol, period)`: Get historical data for a stock
-3. `calculate_rsi(symbol, period)`: Calculate the RSI technical indicator
-4. `calculate_macd(symbol)`: Calculate the MACD technical indicator
-5. `get_company_info(symbol)`: Get company information
-6. `get_stock_news(symbol, max_items)`: Get the latest news articles about a stock
-7. `visualize_stock(symbol, period, indicators)`: Create a visualization of stock data with technical indicators
+### Fundamental Analysis Tools
+- Financial statement retrieval and analysis
+- Key financial ratio calculation
+- Company profile information
+- Industry comparison
+- Valuation metrics
+- Growth analysis
+
+### Risk Analysis Tools
+- Volatility calculation
+- Value at Risk (VaR)
+
+### Sentiment Analysis Tools
+- Financial news sentiment analysis
+- Social media sentiment tracking
+- Sentiment trend visualization
+- News article aggregation
+- Multiple NLP models (FinBERT, RoBERTa, VADER)
+- Sentiment impact analysis
+- Risk-adjusted returns (Sharpe, Sortino)
+- Beta and correlation analysis
+- Portfolio risk assessment
+- Diversification metrics
+
+### Trading Tools
+- Trading signal generation
+- Strategy backtesting
+- Order execution simulation
+- Position management
+- Risk management rules
 
 ## Error Handling
 
-The agent includes robust error handling with fallback mechanisms:
-- If the Gemini AI is unavailable, it falls back to a simple structured analysis
-- All tool functions include try-except blocks to handle API failures gracefully
+The system includes robust error handling with fallback mechanisms:
+- Gemini AI model fallback options
+- Redis unavailability handled with in-memory storage
+- API failures handled gracefully with informative messages
+- Comprehensive logging for debugging
