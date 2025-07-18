@@ -48,6 +48,57 @@ The Finance Analyst ReAct Agent implements the ReAct pattern (Reason → Act →
 
 This process is powered by Google's Gemini AI, which provides the reasoning capabilities to interpret financial data and generate professional-grade analysis with actionable insights.
 
+## Tech Stack
+
+The Finance Analyst AI Agent is built using a modern technology stack:
+
+### Core Technologies
+- **Python 3.8+**: Primary programming language
+- **Google Gemini AI**: Large language model for reasoning and natural language processing
+- **LangChain**: Framework for developing applications powered by language models
+- **LangGraph**: Extension of LangChain for building stateful, multi-actor applications
+- **ReAct Pattern**: Reasoning and action framework for intelligent decision-making
+
+### Data Processing & Analysis
+- **pandas**: Data manipulation and analysis
+- **numpy**: Numerical computing and array operations
+- **yfinance**: Yahoo Finance API wrapper for historical market data
+- **Alpha Vantage API**: Real-time and historical financial data
+- **Polygon.io API**: Real-time market data and WebSocket streaming
+- **statsmodels**: Statistical models for time series analysis
+- **scikit-learn**: Machine learning algorithms for predictive analytics
+- **Prophet**: Time series forecasting by Facebook
+- **SciPy**: Scientific computing and portfolio optimization
+
+### Visualization
+- **matplotlib**: Static visualization and charting
+- **plotly**: Interactive financial charts and dashboards
+- **Dash**: Web-based interactive dashboards
+- **Streamlit**: Interactive web application framework
+- **seaborn**: Enhanced statistical visualizations
+
+### Web & Data Services
+- **requests**: HTTP library for API calls
+- **websocket-client**: WebSocket connections for real-time data
+- **beautifulsoup4**: Web scraping for financial data
+- **redis**: Caching layer for frequently accessed data
+
+### AI & NLP Tools
+- **transformers**: Hugging Face transformers for NLP tasks
+- **nltk**: Natural Language Toolkit for text processing
+- **textblob**: Simplified text processing and sentiment analysis
+
+### Development & Deployment
+- **python-dotenv**: Environment variable management
+- **logging**: Comprehensive logging system
+- **pytest**: Testing framework
+- **tornado**: Web server for alert system
+- **twilio**: Notification services
+
+### Portfolio Management
+- **PyPortfolioOpt**: Portfolio optimization tools
+- **backtrader**: Backtesting framework for trading strategies
+
 ## Requirements
 
 - **Python**: 3.8 or higher
@@ -282,9 +333,6 @@ The Finance Analyst AI Agent is continuously evolving. Planned enhancements incl
    - Data export to spreadsheets and databases
    - API for third-party applications
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ### Fundamental Analysis Tools
 - Financial statement retrieval and analysis
