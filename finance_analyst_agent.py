@@ -25,6 +25,7 @@ from tools.portfolio_management import PortfolioManagementTools
 from tools.backtesting import BacktestingTools
 from tools.backtesting_visualization import BacktestVisualizationTools
 from tools.portfolio_integration import PortfolioIntegrationTools
+from tools.technical_analysis import TechnicalAnalysisTools
 
 # Import new professional-grade tools
 from tools.polygon_integration import PolygonIntegrationTools
@@ -183,6 +184,176 @@ class StockTools:
             return result
         except Exception as e:
             return f"Error calculating MACD for {symbol}: {str(e)}"
+            
+    @staticmethod
+    def calculate_obv(symbol):
+        """Calculate On-Balance Volume (OBV) for a stock"""
+        try:
+            # Get stock data
+            ticker = yf.Ticker(symbol)
+            data = ticker.history(period="3mo")
+            
+            # Basic validation
+            if data is None or data.empty:
+                return f"Could not find data for {symbol}"
+            
+            # Check if data has required columns
+            if 'Close' not in data.columns or 'Volume' not in data.columns:
+                return f"Missing required price or volume data for {symbol}"
+            
+            # Ensure data is clean
+            data = data.dropna(subset=['Close', 'Volume'])
+            
+            # Calculate OBV using the TechnicalAnalysisTools
+            obv = TechnicalAnalysisTools.calculate_obv(data)
+            
+            # Validate OBV result
+            if obv is None or len(obv) == 0:
+                return f"Failed to calculate OBV for {symbol}"
+            
+            # Get the latest values and calculate change
+            latest_obv = obv.iloc[-1]
+            obv_change = 0
+            if len(obv) >= 20 and obv.iloc[-20] != 0:
+                obv_change = ((obv.iloc[-1] - obv.iloc[-20]) / abs(obv.iloc[-20])) * 100
+            
+            # Interpret OBV
+            if obv_change > 5:
+                trend = "strong bullish"
+            elif obv_change > 0:
+                trend = "moderately bullish"
+            elif obv_change < -5:
+                trend = "strong bearish"
+            else:
+                trend = "moderately bearish"
+                
+            result = f"On-Balance Volume (OBV) Analysis for {symbol}:\n"
+            result += f"Current OBV: {latest_obv:.0f}\n"
+            result += f"OBV 20-day Change: {obv_change:.2f}%\n"
+            result += f"Volume Trend: {trend.capitalize()}"
+            
+            return result
+        except Exception as e:
+            return f"Error calculating OBV for {symbol}: {str(e)}"
+            
+    @staticmethod
+    def calculate_adline(symbol):
+        """Calculate Accumulation/Distribution Line for a stock"""
+        try:
+            # Get stock data
+            ticker = yf.Ticker(symbol)
+            data = ticker.history(period="3mo")
+            
+            # Basic validation
+            if data is None or data.empty:
+                return f"Could not find data for {symbol}"
+            
+            # Check if data has required columns
+            required_columns = ['High', 'Low', 'Close', 'Volume']
+            if not all(col in data.columns for col in required_columns):
+                return f"Missing required price or volume data for {symbol}"
+            
+            # Ensure data is clean
+            data = data.dropna(subset=required_columns)
+            
+            # Calculate A/D Line using the TechnicalAnalysisTools
+            ad_line = TechnicalAnalysisTools.calculate_adline(data)
+            
+            # Validate A/D Line result
+            if ad_line is None or len(ad_line) == 0:
+                return f"Failed to calculate A/D Line for {symbol}"
+            
+            # Get the latest values and calculate change
+            latest_ad = ad_line.iloc[-1]
+            ad_change = 0
+            if len(ad_line) >= 20 and ad_line.iloc[-20] != 0:
+                ad_change = ((ad_line.iloc[-1] - ad_line.iloc[-20]) / abs(ad_line.iloc[-20])) * 100
+            
+            # Interpret A/D Line
+            if ad_change > 5:
+                trend = "strong accumulation"
+            elif ad_change > 0:
+                trend = "moderate accumulation"
+            elif ad_change < -5:
+                trend = "strong distribution"
+            else:
+                trend = "moderate distribution"
+                
+            result = f"Accumulation/Distribution Line Analysis for {symbol}:\n"
+            result += f"Current A/D Line: {latest_ad:.2f}\n"
+            result += f"A/D Line 20-day Change: {ad_change:.2f}%\n"
+            result += f"Money Flow Trend: {trend.capitalize()}"
+            
+            return result
+        except Exception as e:
+            return f"Error calculating A/D Line for {symbol}: {str(e)}"
+            
+    @staticmethod
+    def calculate_adx(symbol, window=14):
+        """Calculate Average Directional Index (ADX) for a stock"""
+        try:
+            # Get stock data
+            ticker = yf.Ticker(symbol)
+            data = ticker.history(period="3mo")
+            
+            # Basic validation
+            if data is None or data.empty:
+                return f"Could not find data for {symbol}"
+                
+            # Check if we have enough data points for calculation
+            if len(data) < window * 2:
+                return f"Insufficient data points for ADX calculation for {symbol}. Need at least {window * 2} data points."
+            
+            # Check if data has required columns
+            required_columns = ['High', 'Low', 'Close']
+            if not all(col in data.columns for col in required_columns):
+                return f"Missing required price data for {symbol}"
+            
+            # Ensure data is clean
+            data = data.dropna(subset=required_columns)
+            
+            # Calculate ADX using the TechnicalAnalysisTools
+            adx_result = TechnicalAnalysisTools.calculate_adx(data, window)
+            
+            # Check if ADX calculation was successful
+            if not isinstance(adx_result, dict) or not all(key in adx_result for key in ['ADX', '+DI', '-DI']):
+                return f"Error calculating ADX for {symbol}: invalid result format"
+                
+            adx = adx_result['ADX']
+            plus_di = adx_result['+DI']
+            minus_di = adx_result['-DI']
+            
+            # Get the latest values (with null checks)
+            if adx.empty or plus_di.empty or minus_di.empty:
+                return f"Insufficient data to calculate ADX for {symbol}"
+                
+            # Handle NaN values
+            latest_adx = adx.iloc[-1] if not pd.isna(adx.iloc[-1]) else 0
+            latest_plus_di = plus_di.iloc[-1] if not pd.isna(plus_di.iloc[-1]) else 0
+            latest_minus_di = minus_di.iloc[-1] if not pd.isna(minus_di.iloc[-1]) else 0
+            
+            # Interpret ADX
+            if latest_adx > 25:
+                strength = "strong"
+            elif latest_adx > 20:
+                strength = "moderate"
+            else:
+                strength = "weak"
+                
+            if latest_plus_di > latest_minus_di:
+                trend = "bullish"
+            else:
+                trend = "bearish"
+                
+            result = f"Average Directional Index (ADX) Analysis for {symbol}:\n"
+            result += f"ADX: {latest_adx:.2f} - {strength} trend\n"
+            result += f"+DI: {latest_plus_di:.2f}\n"
+            result += f"-DI: {latest_minus_di:.2f}\n"
+            result += f"Trend Direction: {trend.capitalize()}"
+            
+            return result
+        except Exception as e:
+            return f"Error calculating ADX for {symbol}: {str(e)}"
     
     @staticmethod
     def get_company_info(symbol):
@@ -377,6 +548,11 @@ class FinanceAnalystReActAgent:
             "scenario_analysis": PredictiveAnalyticsTools.scenario_analysis,
             "check_stationarity": PredictiveAnalyticsTools.check_stationarity,
             
+            # Additional Technical Indicators
+            "calculate_obv": StockTools.calculate_obv,
+            "calculate_adline": StockTools.calculate_adline,
+            "calculate_adx": StockTools.calculate_adx,
+            
             # Fundamental Analysis tools
             "get_financial_ratios": FundamentalAnalysisTools.get_financial_ratios,
             "get_income_statement": FundamentalAnalysisTools.get_income_statement,
@@ -454,41 +630,46 @@ class FinanceAnalystReActAgent:
         17. scenario_analysis(historical_data, price_column, scenarios, forecast_periods): Perform scenario analysis for different market conditions
         18. check_stationarity(time_series): Check if a time series is stationary using the Augmented Dickey-Fuller test
         
+        ADDITIONAL TECHNICAL INDICATORS:
+        19. calculate_obv(data): Calculate On-Balance Volume (OBV) - measures buying/selling pressure by adding volume on up days and subtracting on down days
+        20. calculate_adline(data): Calculate Accumulation/Distribution Line - tracks money flow into or out of a security
+        21. calculate_adx(data, window): Calculate Average Directional Index (ADX) - quantifies trend strength on a scale of 0-100
+        
         FUNDAMENTAL ANALYSIS TOOLS:
-        19. get_financial_ratios(symbol): Get key financial ratios including P/E, PEG, P/S, P/B, D/E, ROE, and EPS
-        20. get_income_statement(symbol, period): Get income statement data (revenue, expenses, profits)
-        21. get_balance_sheet(symbol, period): Get balance sheet data (assets, liabilities, equity)
-        22. get_cash_flow(symbol, period): Get cash flow statement data (operating, investing, financing activities)
-        23. format_financial_ratios(ratios): Format financial ratios for display
-        24. get_industry_comparison(symbol, ratios): Compare a stock's financial ratios to industry averages
+        22. get_financial_ratios(symbol): Get key financial ratios including P/E, PEG, P/S, P/B, D/E, ROE, and EPS
+        23. get_income_statement(symbol, period): Get income statement data (revenue, expenses, profits)
+        24. get_balance_sheet(symbol, period): Get balance sheet data (assets, liabilities, equity)
+        25. get_cash_flow(symbol, period): Get cash flow statement data (operating, investing, financing activities)
+        26. format_financial_ratios(ratios): Format financial ratios for display
+        27. get_industry_comparison(symbol, ratios): Compare a stock's financial ratios to industry averages
         
         ENHANCED VISUALIZATION TOOLS:
-        25. visualize_financial_trends(symbol, period, chart_types): Create interactive visualizations of financial trends
-        26. create_correlation_matrix(symbols, period): Generate correlation matrix heatmap for multiple stocks
-        27. compare_performance(symbols, benchmark, period): Compare stock performance against benchmarks
-        28. visualize_financial_ratios(symbol, peer_symbols): Create visualizations of financial ratios with peer comparisons
+        28. visualize_financial_trends(symbol, period, chart_types): Create interactive visualizations of financial trends
+        29. create_correlation_matrix(symbols, period): Generate correlation matrix heatmap for multiple stocks
+        30. compare_performance(symbols, benchmark, period): Compare stock performance against benchmarks
+        31. visualize_financial_ratios(symbol, peer_symbols): Create visualizations of financial ratios with peer comparisons
         
         COMBINED ANALYSIS TOOLS:
-        29. create_combined_analysis(symbol, period): Generate comprehensive analysis combining technical and fundamental data
-        30. format_combined_analysis(analysis): Format combined analysis results for display
+        32. create_combined_analysis(symbol, period): Generate comprehensive analysis combining technical and fundamental data
+        33. format_combined_analysis(analysis): Format combined analysis results for display
         
         PORTFOLIO MANAGEMENT TOOLS:
-        31. calculate_risk_metrics(symbols, weights, period): Calculate portfolio risk metrics including VaR, Sharpe ratio, beta, etc.
-        32. optimize_portfolio(symbols, objective, constraints, period): Optimize portfolio weights based on objective (sharpe, min_volatility, max_return)
-        33. generate_efficient_frontier(symbols, num_portfolios, period): Generate efficient frontier by simulating multiple portfolios
-        34. visualize_portfolio(portfolio_data): Create visualizations of portfolio allocation, risk metrics, efficient frontier, etc.
+        34. calculate_risk_metrics(symbols, weights, period): Calculate portfolio risk metrics including VaR, Sharpe ratio, beta, etc.
+        35. optimize_portfolio(symbols, objective, constraints, period): Optimize portfolio weights based on objective (sharpe, min_volatility, max_return)
+        36. generate_efficient_frontier(symbols, num_portfolios, period): Generate efficient frontier by simulating multiple portfolios
+        37. visualize_portfolio(portfolio_data): Create visualizations of portfolio allocation, risk metrics, efficient frontier, etc.
         
         BACKTESTING TOOLS:
-        35. backtest_sma_crossover(symbol, short_window, long_window, period, initial_capital): Backtest SMA crossover strategy
-        36. backtest_rsi_strategy(symbol, rsi_period, overbought, oversold, period, initial_capital): Backtest RSI strategy
-        37. backtest_macd_strategy(symbol, fast_period, slow_period, signal_period, period, initial_capital): Backtest MACD strategy
-        38. visualize_backtest_results(backtest_data): Create visualizations of backtest results including performance charts
-        39. paper_trading_simulation(symbol, strategy, parameters, initial_capital, start_date, end_date): Run paper trading simulation
+        38. backtest_sma_crossover(symbol, short_window, long_window, period, initial_capital): Backtest SMA crossover strategy
+        39. backtest_rsi_strategy(symbol, rsi_period, overbought, oversold, period, initial_capital): Backtest RSI strategy
+        40. backtest_macd_strategy(symbol, fast_period, slow_period, signal_period, period, initial_capital): Backtest MACD strategy
+        41. visualize_backtest_results(backtest_data): Create visualizations of backtest results including performance charts
+        42. paper_trading_simulation(symbol, strategy, parameters, initial_capital, start_date, end_date): Run paper trading simulation
         
         PORTFOLIO INTEGRATION TOOLS:
-        40. analyze_portfolio(query): Analyze portfolio based on user query (extract symbols, weights, and perform analysis)
-        41. backtest_strategy(query): Backtest trading strategy based on user query (extract symbol, strategy type, and parameters)
-        42. run_paper_trading(query): Run paper trading simulation based on user query
+        43. analyze_portfolio(query): Analyze portfolio based on user query (extract symbols, weights, and perform analysis)
+        44. backtest_strategy(query): Backtest trading strategy based on user query (extract symbol, strategy type, and parameters)
+        45. run_paper_trading(query): Run paper trading simulation based on user query
         
         When a user asks a question about a stock, you should follow the ReAct pattern:
         1. REASON: Think about what information is needed to answer the query
@@ -603,7 +784,7 @@ class FinanceAnalystReActAgent:
             matches = re.findall(pattern, query)
             
             # Filter out common non-ticker uppercase words
-            common_words = ['I', 'A', 'THE', 'FOR', 'AND', 'OR', 'RSI', 'MACD', 'EMA', 'SMA', 'GDP', 'CPI', 'USD', 'EUR']
+            common_words = ['I', 'A', 'THE', 'FOR', 'AND', 'OR', 'RSI', 'MACD', 'EMA', 'SMA', 'GDP', 'CPI', 'USD', 'EUR', 'OBV', 'ADX', 'AD']
             ticker_candidates = [word for word in matches if word not in common_words]
             
             if ticker_candidates:
@@ -684,6 +865,16 @@ class FinanceAnalystReActAgent:
         
         if any(term in query for term in ["macd", "moving average convergence", "divergence"]):
             tools_needed.append("calculate_macd")
+            
+        # Check for new technical indicators
+        if any(term in query for term in ["obv", "on-balance volume", "on balance volume", "volume price"]):
+            tools_needed.append("calculate_obv")
+            
+        if any(term in query for term in ["a/d line", "adline", "accumulation distribution", "accumulation/distribution"]):
+            tools_needed.append("calculate_adline")
+            
+        if any(term in query for term in ["adx", "average directional", "directional movement", "trend strength"]):
+            tools_needed.append("calculate_adx")
         
         # Check for historical data needs with optimized performance
         if any(term in query for term in ["history", "historical", "trend", "past", "performance", "chart", "graph"]):
@@ -757,9 +948,15 @@ class FinanceAnalystReActAgent:
     
     def process_query(self, query):
         """Process a user query using the ReAct pattern and return a response"""
+        # REASON: Determine asset type and real-time needs
+        asset_type = self._detect_asset_type(query)
+        needs_real_time = self._needs_real_time_data(query)
+        print(f"REACT - REASON: Analyzing query for asset type: {asset_type}")
+        print(f"REACT - REASON: Real-time data needed: {needs_real_time}")
+        
         # REASON: Determine which tools to use based on the query
-        print(f"REACT - REASON: Analyzing query '{query}'")
         tools_needed = self.determine_tools_needed(query)
+        print(f"REACT - ACT: Selected tools: {tools_needed}")
         
         # Check if portfolio integration tools are needed
         if "analyze_portfolio" in tools_needed:
@@ -780,28 +977,29 @@ class FinanceAnalystReActAgent:
         # For standard single-stock analysis, continue with normal flow
         # ACT: Extract stock symbol from query
         symbol = self.extract_stock_symbol(query)
-        print(f"REACT - ACT: Extracted symbol '{symbol}'")
         
         # ACT: Execute tools
         results = {}
         for tool_name in tools_needed:
             if tool_name in self.tools:
-                print(f"REACT - ACT: Executing tool '{tool_name}'")
+                print(f"REACT - ACT: Executing {tool_name} for {symbol}")
                 try:
                     if tool_name == "get_economic_indicator":
                         # Economic indicators don't need a symbol
                         results[tool_name] = self.tools[tool_name](query)
+                    elif tool_name in ["calculate_obv", "calculate_adline", "calculate_adx"]:
+                        # Technical indicators need to fetch their own data
+                        # The wrapper methods already handle fetching data for the symbol
+                        results[tool_name] = self.tools[tool_name](symbol)
                     else:
                         # Most tools need a symbol
                         results[tool_name] = self.tools[tool_name](symbol)
+                    print(f"REACT - OBSERVE: Got result from {tool_name}")
                 except Exception as e:
                     print(f"REACT - ERROR: Tool '{tool_name}' failed with error: {str(e)}")
                     results[tool_name] = f"Error: {str(e)}"
             else:
                 print(f"REACT - ERROR: Tool '{tool_name}' not found")
-        
-        # OBSERVE: Analyze results
-        print(f"REACT - OBSERVE: Analyzing results from {len(results)} tools")
         
         # Format results into a response
         response = self._format_response(query, symbol, results)

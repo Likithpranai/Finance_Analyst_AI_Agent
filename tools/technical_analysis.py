@@ -3,8 +3,10 @@ Technical Analysis Tools for Finance Analyst AI Agent
 
 This module provides technical analysis tools for stock data including:
 - Moving averages (SMA, EMA)
-- Momentum indicators (RSI, MACD)
+- Momentum indicators (RSI, MACD, OBV)
 - Volatility indicators (Bollinger Bands)
+- Trend indicators (ADX)
+- Volume indicators (OBV, A/D Line)
 - Support and resistance levels
 - Chart pattern recognition
 """
@@ -202,6 +204,161 @@ class TechnicalAnalysisTools:
         annualized_volatility = std_dev.iloc[-1] * np.sqrt(252) * 100
         
         return annualized_volatility
+    
+    @staticmethod
+    def calculate_obv(data):
+        """
+        Calculate On-Balance Volume (OBV)
+        
+        OBV measures buying and selling pressure by adding volume on up days
+        and subtracting on down days. It's useful for confirming trends or
+        spotting divergences.
+        
+        Args:
+            data (DataFrame): Stock price data with 'Close' and 'Volume' columns
+            
+        Returns:
+            Series: OBV values
+        """
+        try:
+            # Debug logging
+            logger.info(f"OBV calculation input type: {type(data)}")
+            
+            # Check if data is a DataFrame
+            if not isinstance(data, pd.DataFrame):
+                logger.error(f"OBV calculation expected DataFrame, got {type(data)}")
+                if isinstance(data, str):
+                    logger.error(f"Received string data: {data[:100]}...")
+                return pd.Series()
+            
+            logger.info(f"OBV calculation data columns: {data.columns.tolist()}")
+            logger.info(f"OBV calculation data shape: {data.shape}")
+            
+            if 'Volume' not in data.columns:
+                logger.error("'Volume' column not found in data")
+                return pd.Series(index=data.index)
+                
+            if 'Close' not in data.columns:
+                logger.error("'Close' column not found in data")
+                return pd.Series(index=data.index)
+                
+            close_diff = data['Close'].diff()
+            
+            # Initialize OBV with first volume value
+            obv = pd.Series(0, index=data.index)
+            obv.iloc[0] = data['Volume'].iloc[0]
+            
+            # Calculate OBV
+            for i in range(1, len(data)):
+                if close_diff.iloc[i] > 0:  # Price up, add volume
+                    obv.iloc[i] = obv.iloc[i-1] + data['Volume'].iloc[i]
+                elif close_diff.iloc[i] < 0:  # Price down, subtract volume
+                    obv.iloc[i] = obv.iloc[i-1] - data['Volume'].iloc[i]
+                else:  # Price unchanged, OBV unchanged
+                    obv.iloc[i] = obv.iloc[i-1]
+            
+            logger.info(f"OBV calculation successful, returning series of length {len(obv)}")
+            return obv
+        except Exception as e:
+            logger.error(f"Error calculating OBV: {str(e)}")
+            return pd.Series()
+    
+    @staticmethod
+    def calculate_adline(data):
+        """
+        Calculate Accumulation/Distribution Line (A/D Line)
+        
+        The A/D Line tracks the cumulative flow of money into or out of a security.
+        It helps identify potential reversals when it diverges from price action.
+        
+        Args:
+            data (DataFrame): Stock price data with 'High', 'Low', 'Close', and 'Volume' columns
+            
+        Returns:
+            Series: A/D Line values
+        """
+        try:
+            if not all(col in data.columns for col in ['High', 'Low', 'Close', 'Volume']):
+                return pd.Series(index=data.index)
+            
+            # Calculate Money Flow Multiplier
+            mfm = ((data['Close'] - data['Low']) - (data['High'] - data['Close'])) / (data['High'] - data['Low'])
+            mfm = mfm.replace([np.inf, -np.inf], 0)  # Handle division by zero
+            
+            # Calculate Money Flow Volume
+            mfv = mfm * data['Volume']
+            
+            # Calculate A/D Line (cumulative sum of Money Flow Volume)
+            ad_line = mfv.cumsum()
+            
+            return ad_line
+        except Exception as e:
+            logger.error(f"Error calculating A/D Line: {str(e)}")
+            return pd.Series(index=data.index)
+    
+    @staticmethod
+    def calculate_adx(data, window=14):
+        """
+        Calculate Average Directional Index (ADX)
+        
+        ADX quantifies the strength of a trend (regardless of direction) on a scale of 0-100.
+        Values above 25 indicate a strong trend.
+        
+        Args:
+            data (DataFrame): Stock price data with 'High', 'Low', 'Close' columns
+            window (int): Period for ADX calculation
+            
+        Returns:
+            dict: Dictionary with ADX, +DI, and -DI values
+        """
+        try:
+            if not all(col in data.columns for col in ['High', 'Low', 'Close']):
+                return {"adx": pd.Series(index=data.index)}
+            
+            # Calculate True Range
+            high_low = data['High'] - data['Low']
+            high_close = (data['High'] - data['Close'].shift()).abs()
+            low_close = (data['Low'] - data['Close'].shift()).abs()
+            
+            tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+            atr = tr.rolling(window=window).mean()
+            
+            # Calculate +DM and -DM
+            plus_dm = data['High'].diff()
+            minus_dm = data['Low'].diff().multiply(-1)
+            
+            # Set values where +DM is not greater than -DM to 0
+            plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0)
+            
+            # Set values where -DM is not greater than +DM to 0
+            minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0)
+            
+            # Calculate smoothed +DM and -DM
+            smoothed_plus_dm = plus_dm.rolling(window=window).sum()
+            smoothed_minus_dm = minus_dm.rolling(window=window).sum()
+            
+            # Calculate +DI and -DI
+            plus_di = 100 * (smoothed_plus_dm / atr)
+            minus_di = 100 * (smoothed_minus_dm / atr)
+            
+            # Calculate DX
+            dx = 100 * ((plus_di - minus_di).abs() / (plus_di + minus_di).abs())
+            
+            # Calculate ADX (smoothed DX)
+            adx = dx.rolling(window=window).mean()
+            
+            return {
+                "ADX": adx,
+                "+DI": plus_di,
+                "-DI": minus_di
+            }
+        except Exception as e:
+            logger.error(f"Error calculating ADX: {str(e)}")
+            return {
+                "ADX": pd.Series(index=data.index),
+                "+DI": pd.Series(index=data.index),
+                "-DI": pd.Series(index=data.index)
+            }
     
     @staticmethod
     def identify_support_resistance(data, window=10):

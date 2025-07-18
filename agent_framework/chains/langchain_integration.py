@@ -1,33 +1,18 @@
-"""
-LangChain Integration for Finance Analyst AI Agent Framework
-Provides integration with LangChain for advanced agent capabilities
-"""
 import os
 from typing import Dict, List, Any, Optional, Union, Callable
 from dotenv import load_dotenv
 
-# Import LangChain components
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.chat_models import ChatGoogleGenerativeAI
 
-# Load environment variables
 load_dotenv()
 
 class LangChainIntegration:
-    """
-    Integrates LangChain capabilities with the Finance Analyst AI Agent Framework
-    """
     
     def __init__(self, model_name: str = "gemini-1.5-pro"):
-        """
-        Initialize LangChain integration
-        
-        Args:
-            model_name: Name of the Gemini model to use
-        """
         self.model_name = model_name
         self.llm = self._initialize_llm()
         
@@ -59,16 +44,6 @@ class LangChainIntegration:
         raise ValueError("Failed to initialize any Gemini model for LangChain")
     
     def create_chain(self, system_prompt: str) -> Callable:
-        """
-        Create a LangChain chain with the specified system prompt
-        
-        Args:
-            system_prompt: System prompt for the chain
-            
-        Returns:
-            LangChain chain callable
-        """
-        # Create prompt template
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
             ("human", "{input}")
@@ -156,7 +131,6 @@ class LangChainIntegration:
             | StrOutputParser()
         )
         
-        # Add memory updating
         def chain_with_memory(input_text):
             result = chain.invoke({"input": input_text})
             memory.save_context({"input": input_text}, {"output": result})
