@@ -1,0 +1,16 @@
+symbol,name,sector,industry
+AAPL,Apple Inc.,Technology,Consumer Electronics
+MSFT,Microsoft Corporation,Technology,Software—Infrastructure
+GOOGL,Alphabet Inc.,Communication Services,Internet Content & Information
+AMZN,Amazon.com Inc.,Consumer Cyclical,Internet Retail
+META,Meta Platforms Inc.,Communication Services,Internet Content & Information
+TSLA,Tesla Inc.,Consumer Cyclical,Auto Manufacturers
+NVDA,NVIDIA Corporation,Technology,Semiconductors
+BRK-B,Berkshire Hathaway Inc.,Financial Services,Insurance—Diversified
+JPM,JPMorgan Chase & Co.,Financial Services,Banks—Diversified
+JNJ,Johnson & Johnson,Healthcare,Drug Manufacturers—General
+V,Visa Inc.,Financial Services,Credit Services
+PG,Procter & Gamble Company,Consumer Defensive,Household & Personal Products
+UNH,UnitedHealth Group Incorporated,Healthcare,Healthcare Plans
+HD,Home Depot Inc.,Consumer Cyclical,Home Improvement Retail
+MA,Mastercard Incorporated,Financial Services,Credit Services
