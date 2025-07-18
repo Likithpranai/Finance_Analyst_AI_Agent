@@ -12,7 +12,10 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import re
 import traceback
+import time
 from typing import Dict, List, Any, Tuple, Optional, Union
+
+# Import existing tools
 from tools.alpha_vantage_tools import AlphaVantageTools
 from tools.predictive_analytics import PredictiveAnalyticsTools
 from tools.fundamental_analysis import FundamentalAnalysisTools
@@ -22,6 +25,12 @@ from tools.portfolio_management import PortfolioManagementTools
 from tools.backtesting import BacktestingTools
 from tools.backtesting_visualization import BacktestVisualizationTools
 from tools.portfolio_integration import PortfolioIntegrationTools
+
+# Import new professional-grade tools
+from tools.polygon_integration import PolygonIntegrationTools
+from tools.websocket_manager import websocket_manager
+from tools.cache_manager import CacheManager
+from tools.real_time_data_integration import RealTimeDataTools
 
 load_dotenv()
 
@@ -339,11 +348,25 @@ class FinanceAnalystReActAgent:
             "get_stock_news": StockTools.get_stock_news,
             "visualize_stock": StockTools.visualize_stock,
             
-            # Alpha Vantage real-time data tools
-            "get_real_time_quote": AlphaVantageTools.get_real_time_quote,
-            "get_intraday_data": AlphaVantageTools.get_intraday_data,
-            "get_crypto_data": AlphaVantageTools.get_crypto_data,
-            "get_forex_data": AlphaVantageTools.get_forex_data,
+            # Professional Real-Time Data Tools (Polygon.io with fallback)
+            "get_real_time_quote": RealTimeDataTools.get_real_time_quote,
+            "get_intraday_data": RealTimeDataTools.get_intraday_data,
+            "get_historical_data": RealTimeDataTools.get_historical_data,
+            "get_crypto_data": RealTimeDataTools.get_crypto_data,
+            "get_forex_data": RealTimeDataTools.get_forex_data,
+            "get_company_details": RealTimeDataTools.get_company_details,
+            "get_market_news": RealTimeDataTools.get_market_news,
+            "start_real_time_stream": RealTimeDataTools.start_real_time_stream,
+            "stop_real_time_stream": RealTimeDataTools.stop_real_time_stream,
+            "get_active_streams": RealTimeDataTools.get_active_streams,
+            "clear_cache": RealTimeDataTools.clear_cache,
+            "get_cache_stats": RealTimeDataTools.get_cache_stats,
+            
+            # Legacy Alpha Vantage tools (kept for compatibility)
+            "get_alpha_vantage_quote": AlphaVantageTools.get_real_time_quote,
+            "get_alpha_vantage_intraday": AlphaVantageTools.get_intraday_data,
+            "get_alpha_vantage_crypto": AlphaVantageTools.get_crypto_data,
+            "get_alpha_vantage_forex": AlphaVantageTools.get_forex_data,
             "get_economic_indicator": AlphaVantageTools.get_economic_indicator,
             
             # Predictive Analytics tools
@@ -406,12 +429,22 @@ class FinanceAnalystReActAgent:
         6. get_stock_news(symbol, max_items): Get the latest news articles about a stock
         7. visualize_stock(symbol, period, indicators): Create a visualization of stock data with technical indicators
         
-        REAL-TIME DATA TOOLS (ALPHA VANTAGE):
-        8. get_real_time_quote(symbol): Get real-time stock quote with minimal latency
-        9. get_intraday_data(symbol, interval, output_size): Get intraday data with sub-second latency (intervals: 1min, 5min, 15min, 30min, 60min)
-        10. get_crypto_data(symbol, market, interval): Get real-time cryptocurrency data (e.g., BTC/USD)
-        11. get_forex_data(from_currency, to_currency, interval): Get real-time forex exchange rate data
-        12. get_economic_indicator(indicator): Get economic indicators (GDP, INFLATION, UNEMPLOYMENT, etc.)
+        PROFESSIONAL REAL-TIME DATA TOOLS (POLYGON.IO WITH FALLBACK):
+        8. get_real_time_quote(symbol): Get real-time stock quote with sub-second latency
+        9. get_intraday_data(symbol, interval, limit): Get intraday data with low latency (intervals: 1min, 5min, 15min, 30min, 60min)
+        10. get_historical_data(symbol, period): Get historical daily data with optimized performance
+        11. get_crypto_data(symbol, market, interval): Get real-time cryptocurrency data (e.g., BTC/USD)
+        12. get_forex_data(from_currency, to_currency, interval): Get real-time forex exchange rate data
+        13. get_company_details(symbol): Get detailed company information including financials and metrics
+        14. get_market_news(symbol, limit): Get latest news for a symbol or general market news
+        15. start_real_time_stream(symbols, callback, asset_type): Start a WebSocket stream for real-time updates
+        16. stop_real_time_stream(stream_id): Stop a WebSocket stream
+        17. get_active_streams(): Get information about active streams
+        18. clear_cache(pattern): Clear cache entries to refresh data
+        19. get_cache_stats(): Get cache statistics
+        
+        ECONOMIC INDICATORS:
+        20. get_economic_indicator(indicator): Get economic indicators (GDP, INFLATION, UNEMPLOYMENT, etc.)
         
         PREDICTIVE ANALYTICS TOOLS:
         13. forecast_with_prophet(historical_data, periods): Generate time series forecasts using Facebook Prophet
@@ -464,11 +497,12 @@ class FinanceAnalystReActAgent:
         4. LOOP: If needed, use additional tools based on initial observations
         
         IMPORTANT GUIDELINES:
-        - For real-time trading analysis, use Alpha Vantage tools (8-12) instead of yfinance
-        - For cryptocurrency queries, use get_crypto_data
-        - For forex exchange rates, use get_forex_data
+        - For professional real-time trading analysis, use Polygon.io tools (8-19) for sub-second latency
+        - For streaming real-time data, use start_real_time_stream to create WebSocket connections
+        - For cryptocurrency queries, use get_crypto_data with Polygon.io for professional-grade data
+        - For forex exchange rates, use get_forex_data with Polygon.io for low-latency quotes
         - For economic context, use get_economic_indicator
-        - For standard historical analysis, use yfinance tools (1-7)
+        - For standard historical analysis, use get_historical_data with caching for optimized performance
         - For price predictions and forecasting, use forecast_with_prophet or forecast_with_lstm (13-14)
         - For volatility analysis and risk assessment, use calculate_volatility (16)
         - For detecting unusual price movements, use detect_anomalies (15)
@@ -620,20 +654,23 @@ class FinanceAnalystReActAgent:
             tools_needed.append("run_paper_trading")
             return tools_needed
         
-        # Check for real-time stock price information
-        if any(term in query for term in ["price", "worth", "value", "cost", "current", "how much"]):
-            if needs_real_time and asset_type == "stock":
+        # Check for real-time stock price information with professional-grade data
+        if any(term in query for term in ["price", "worth", "value", "cost", "current", "how much", "quote", "tick", "bid", "ask"]):
+            if asset_type == "stock":
+                # Always use professional real-time quotes for current prices
                 tools_needed.append("get_real_time_quote")
-            elif asset_type == "stock":
-                tools_needed.append("get_stock_price")
             elif asset_type == "crypto":
                 tools_needed.append("get_crypto_data")
             elif asset_type == "forex":
                 tools_needed.append("get_forex_data")
         
         # Check for intraday/real-time analysis needs
-        if needs_real_time and asset_type == "stock" and any(term in query for term in ["intraday", "minute", "hourly", "today's", "day trading", "scalping"]):
+        if asset_type == "stock" and any(term in query for term in ["intraday", "minute", "hourly", "today's", "day trading", "scalping", "high frequency", "tick data", "level 2", "order book"]):
             tools_needed.append("get_intraday_data")
+            
+        # Check for real-time streaming needs
+        if any(term in query for term in ["stream", "real-time updates", "live data", "continuous updates", "websocket", "streaming"]):
+            tools_needed.append("start_real_time_stream")
         
         # Check for technical analysis needs
         if any(term in query for term in ["technical", "indicator", "analysis"]):
@@ -648,22 +685,25 @@ class FinanceAnalystReActAgent:
         if any(term in query for term in ["macd", "moving average convergence", "divergence"]):
             tools_needed.append("calculate_macd")
         
-        # Check for historical data needs
-        if any(term in query for term in ["history", "historical", "trend", "past", "performance"]):
-            if asset_type == "stock" and not needs_real_time:
-                tools_needed.append("get_stock_history")
+        # Check for historical data needs with optimized performance
+        if any(term in query for term in ["history", "historical", "trend", "past", "performance", "chart", "graph"]):
+            if asset_type == "stock":
+                # Use the new professional-grade historical data tool with caching
+                tools_needed.append("get_historical_data")
             elif asset_type == "crypto":
                 tools_needed.append("get_crypto_data")
             elif asset_type == "forex":
                 tools_needed.append("get_forex_data")
         
-        # Check for company information needs
-        if asset_type == "stock" and any(term in query for term in ["info", "information", "about", "company", "details", "fundamentals"]):
-            tools_needed.append("get_company_info")
+        # Check for company information needs with enhanced details
+        if asset_type == "stock" and any(term in query for term in ["info", "information", "about", "company", "details", "fundamentals", "profile", "executives", "market cap", "sector"]):
+            # Use the new professional-grade company details tool
+            tools_needed.append("get_company_details")
         
-        # Check for news needs
-        if asset_type == "stock" and any(term in query for term in ["news", "headlines", "articles", "press", "announcement"]):
-            tools_needed.append("get_stock_news")
+        # Check for news needs with professional-grade sources
+        if asset_type == "stock" and any(term in query for term in ["news", "headlines", "articles", "press", "announcement", "media", "release"]):
+            # Use the new professional-grade news tool
+            tools_needed.append("get_market_news")
         
         # Check for visualization needs
         if asset_type == "stock" and any(term in query for term in ["chart", "graph", "plot", "visual", "picture", "show me"]):
