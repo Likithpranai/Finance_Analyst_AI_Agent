@@ -1,0 +1,71 @@
+:root {
+  /* Light mode colors */
+  --light-bg: #ffffff;
+  --light-text: #1a1a1a;
+  --light-secondary-text: #4a4a4a;
+  --light-border: #e0e0e0;
+  --light-hover: #f5f5f5;
+  --light-primary: #007aff;
+  --light-secondary: #5ac8fa;
+  --light-accent: #34c759;
+  --light-card-bg: #f9f9f9;
+  --light-input-bg: #f0f0f0;
+  
+  /* Dark mode colors */
+  --dark-bg: #1c1c1c;
+  --dark-text: #f0f0f0;
+  --dark-secondary-text: #a0a0a0;
+  --dark-border: #333333;
+  --dark-hover: #2a2a2a;
+  --dark-primary: #0a84ff;
+  --dark-secondary: #64d2ff;
+  --dark-accent: #30d158;
+  --dark-card-bg: #2c2c2c;
+  --dark-input-bg: #3a3a3a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s ease;
+}
+
+.app.light {
+  background-color: var(--light-bg);
+  color: var(--light-text);
+}
+
+.app.dark {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+.app-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+}

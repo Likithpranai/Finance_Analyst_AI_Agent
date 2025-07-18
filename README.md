@@ -156,6 +156,27 @@ The Finance Analyst AI Agent supports multiple usage modes:
    ```
    Process a single query and exit.
 
+### Web UI Interface
+
+The Finance Analyst AI Agent includes a modern GROK AI-style web interface for a more interactive experience:
+
+1. **Start the Web UI**:
+   ```bash
+   cd web_ui
+   ./start_dev.sh
+   ```
+   This launches both the backend FastAPI server and the React frontend.
+
+2. **Access the Interface**:
+   Open your browser and navigate to `http://localhost:3000`
+
+The web UI provides:
+- Real-time streaming responses via WebSockets
+- Dark/light mode toggle
+- Markdown rendering with code syntax highlighting
+- Chat history management
+- Mobile-responsive design
+
 ### Example Queries
 
 #### Basic Analysis

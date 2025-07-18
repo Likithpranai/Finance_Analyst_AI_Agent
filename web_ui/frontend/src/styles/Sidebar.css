@@ -1,0 +1,227 @@
+.sidebar {
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+}
+
+.sidebar.dark {
+  background-color: var(--dark-card-bg);
+  color: var(--dark-text);
+  border-right: 1px solid var(--dark-border);
+}
+
+.sidebar.light {
+  background-color: var(--light-card-bg);
+  color: var(--light-text);
+  border-right: 1px solid var(--light-border);
+}
+
+.sidebar.closed {
+  width: 0;
+  border: none;
+}
+
+.sidebar-toggle-button {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1001;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle-button.dark {
+  background-color: var(--dark-card-bg);
+  color: var(--dark-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-toggle-button.light {
+  background-color: var(--light-card-bg);
+  color: var(--light-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-toggle-button:hover {
+  transform: scale(1.05);
+}
+
+.sidebar-header {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid;
+}
+
+.sidebar.dark .sidebar-header {
+  border-color: var(--dark-border);
+}
+
+.sidebar.light .sidebar-header {
+  border-color: var(--light-border);
+}
+
+.sidebar-header h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.new-chat-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  margin: 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sidebar.dark .new-chat-button {
+  background-color: var(--dark-primary);
+  color: white;
+}
+
+.sidebar.light .new-chat-button {
+  background-color: var(--light-primary);
+  color: white;
+}
+
+.new-chat-button:hover {
+  opacity: 0.9;
+}
+
+.sidebar-conversations {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.sidebar-conversations h3 {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--light-secondary-text);
+}
+
+.sidebar.dark .sidebar-conversations h3 {
+  color: var(--dark-secondary-text);
+}
+
+.conversation-item {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar.dark .conversation-item:hover {
+  background-color: var(--dark-hover);
+}
+
+.sidebar.light .conversation-item:hover {
+  background-color: var(--light-hover);
+}
+
+.conversation-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-date {
+  font-size: 0.8rem;
+  color: var(--light-secondary-text);
+}
+
+.sidebar.dark .conversation-date {
+  color: var(--dark-secondary-text);
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid;
+}
+
+.sidebar.dark .sidebar-footer {
+  border-color: var(--dark-border);
+}
+
+.sidebar.light .sidebar-footer {
+  border-color: var(--light-border);
+}
+
+.sidebar-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.sidebar.dark .sidebar-button:hover {
+  background-color: var(--dark-hover);
+}
+
+.sidebar.light .sidebar-button:hover {
+  background-color: var(--light-hover);
+}
+
+.sidebar-version {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--light-secondary-text);
+}
+
+.sidebar.dark .sidebar-version {
+  color: var(--dark-secondary-text);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100% !important;
+    z-index: 2000;
+  }
+  
+  .sidebar.closed {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}

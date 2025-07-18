@@ -16,10 +16,10 @@ class APIConfig(BaseModel):
     polygon_api_key: Optional[str] = os.getenv("POLYGON_API_KEY")
 
 class WebSocketConfig(BaseModel):
-    ping_interval: int = 20  
+    ping_interval: int = 20 
     ping_timeout: int = 60   
-    close_timeout: int = 10 
-    max_message_size: int = 1024 * 1024 
+    close_timeout: int = 10
+    max_message_size: int = 1024 * 1024
 
 class LoggingConfig(BaseModel):
     level: str = "INFO"

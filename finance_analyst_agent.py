@@ -15,7 +15,6 @@ import traceback
 import time
 from typing import Dict, List, Any, Tuple, Optional, Union
 
-# Import existing tools
 from tools.alpha_vantage_tools import AlphaVantageTools
 from tools.predictive_analytics import PredictiveAnalyticsTools
 from tools.fundamental_analysis import FundamentalAnalysisTools
@@ -59,12 +58,9 @@ if model is None:
     print("Please check your API key and ensure you have access to Gemini models.")
     print("You can still use the agent's tools for financial analysis.")
 
-
-# Define stock analysis tools
 class StockTools:
     @staticmethod
     def get_stock_price(symbol):
-        """Get current stock price for a symbol"""
         try:
             ticker = yf.Ticker(symbol)
             data = ticker.history(period="1d")
@@ -78,27 +74,14 @@ class StockTools:
     
     @staticmethod
     def get_stock_history(symbol, period="1mo", return_df=False):
-        """Get historical stock data
-        
-        Args:
-            symbol: Stock ticker symbol
-            period: Time period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)
-            return_df: If True, returns the DataFrame directly instead of formatted string
-            
-        Returns:
-            Formatted string with historical data summary or DataFrame if return_df=True
-        """
         try:
             ticker = yf.Ticker(symbol)
             data = ticker.history(period=period)
             if data.empty:
                 return f"Could not find historical data for {symbol}" if not return_df else None
-            
-            # Return DataFrame if requested
             if return_df:
                 return data
             
-            # Format the data for display
             result = f"Historical data for {symbol} (last {period}):\n"
             result += f"Start: ${data['Close'].iloc[0]:.2f}, End: ${data['Close'].iloc[-1]:.2f}\n"
             result += f"High: ${data['High'].max():.2f}, Low: ${data['Low'].min():.2f}\n"

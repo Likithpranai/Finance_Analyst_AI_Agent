@@ -1,9 +1,3 @@
-"""
-Demo script for showcasing the professional-grade real-time data capabilities
-of the Finance Analyst AI Agent with Polygon.io integration, WebSocket streaming,
-and Redis caching.
-"""
-
 import os
 import json
 import time
@@ -14,31 +8,25 @@ from tools.real_time_data_integration import RealTimeDataTools
 from tools.websocket_manager import websocket_manager
 from tools.cache_manager import CacheManager
 
-# Load environment variables
 load_dotenv()
 
-# Check for required API keys
 POLYGON_API_KEY = os.getenv("POLYGON_API_KEY")
 if not POLYGON_API_KEY:
     print("Warning: POLYGON_API_KEY not found in environment variables.")
     print("Please add your Polygon.io API key to the .env file.")
     print("You can get a free API key at https://polygon.io/")
 
-# Initialize the agent
 agent = FinanceAnalystReActAgent()
 
 def print_section(title):
-    """Print a section header"""
     print("\n" + "="*80)
     print(f" {title} ".center(80, "="))
     print("="*80 + "\n")
 
 def print_json(data):
-    """Pretty print JSON data"""
     print(json.dumps(data, indent=2))
 
 def real_time_quote_demo():
-    """Demo real-time quotes with sub-second latency"""
     print_section("Real-Time Quotes Demo (Sub-Second Latency)")
     
     symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
@@ -53,7 +41,6 @@ def real_time_quote_demo():
         if "data" in quote:
             data = quote["data"]
             if isinstance(data, dict):
-                # Format the output nicely
                 print(f"  Price: ${data.get('last', data.get('price', 'N/A'))}")
                 print(f"  Change: {data.get('change', 'N/A')} ({data.get('percent_change', 'N/A')}%)")
                 print(f"  Volume: {data.get('volume', 'N/A')}")
@@ -98,10 +85,7 @@ def intraday_data_demo():
         print(f"Data identical: {cached_data.equals(data)}")
 
 def websocket_streaming_demo():
-    """Demo WebSocket streaming for real-time updates"""
     print_section("WebSocket Streaming Demo (Real-Time Updates)")
-    
-    # Define a callback function to handle incoming messages
     def handle_stock_message(message):
         if isinstance(message, dict):
             if message.get('ev') == 'T':  # Trade event
@@ -116,7 +100,6 @@ def websocket_streaming_demo():
     print(f"Starting real-time WebSocket stream for: {', '.join(symbols)}")
     
     try:
-        # Start the WebSocket stream
         stream_result = RealTimeDataTools.start_real_time_stream(symbols, handle_stock_message, "stocks")
         
         if "error" in stream_result:
@@ -125,8 +108,6 @@ def websocket_streaming_demo():
         
         stream_id = stream_result.get("stream_id")
         print(f"Stream started with ID: {stream_id}")
-        
-        # Let it run for a few seconds to collect some data
         print("Listening for real-time trades (press Ctrl+C to stop)...")
         try:
             time.sleep(30)  # Listen for 30 seconds
@@ -141,7 +122,6 @@ def websocket_streaming_demo():
         print(f"Error in WebSocket demo: {str(e)}")
 
 def cache_management_demo():
-    """Demo cache management capabilities"""
     print_section("Cache Management Demo")
     
     # Get cache statistics
@@ -160,7 +140,6 @@ def cache_management_demo():
     print_json(stats)
 
 def agent_query_demo():
-    """Demo the agent processing queries with the new tools"""
     print_section("Agent Query Demo")
     
     queries = [
