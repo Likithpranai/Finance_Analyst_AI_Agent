@@ -18,6 +18,10 @@ from tools.predictive_analytics import PredictiveAnalyticsTools
 from tools.fundamental_analysis import FundamentalAnalysisTools
 from tools.enhanced_visualization import EnhancedVisualizationTools
 from tools.combined_analysis import CombinedAnalysisTools
+from tools.portfolio_management import PortfolioManagementTools
+from tools.backtesting import BacktestingTools
+from tools.backtesting_visualization import BacktestVisualizationTools
+from tools.portfolio_integration import PortfolioIntegrationTools
 
 load_dotenv()
 
@@ -361,12 +365,30 @@ class FinanceAnalystReActAgent:
             # Enhanced Visualization tools
             "visualize_financial_trends": EnhancedVisualizationTools.visualize_financial_trends,
             "create_correlation_matrix": EnhancedVisualizationTools.create_correlation_matrix,
-            "compare_performance": EnhancedVisualizationTools.compare_performance,
+            "compare_performance": EnhancedVisualizationTools.visualize_performance_comparison,
             "visualize_financial_ratios": EnhancedVisualizationTools.visualize_financial_ratios,
             
             # Combined Analysis tools
             "create_combined_analysis": CombinedAnalysisTools.create_combined_analysis,
-            "format_combined_analysis": CombinedAnalysisTools.format_combined_analysis
+            "format_combined_analysis": CombinedAnalysisTools.format_combined_analysis,
+            
+            # Portfolio Management tools
+            "calculate_risk_metrics": PortfolioManagementTools.calculate_risk_metrics,
+            "optimize_portfolio": PortfolioManagementTools.optimize_portfolio,
+            "generate_efficient_frontier": PortfolioManagementTools.generate_efficient_frontier,
+            "visualize_portfolio": PortfolioManagementTools.visualize_portfolio,
+            
+            # Backtesting tools
+            "backtest_sma_crossover": BacktestingTools.backtest_sma_crossover,
+            "backtest_rsi_strategy": BacktestingTools.backtest_rsi_strategy,
+            "backtest_macd_strategy": BacktestingTools.backtest_macd_strategy,
+            "visualize_backtest_results": BacktestVisualizationTools.visualize_backtest_results,
+            "paper_trading_simulation": BacktestVisualizationTools.paper_trading_simulation,
+            
+            # Portfolio Integration tools
+            "analyze_portfolio": PortfolioIntegrationTools.analyze_portfolio,
+            "backtest_strategy": PortfolioIntegrationTools.backtest_strategy,
+            "run_paper_trading": PortfolioIntegrationTools.run_paper_trading
         }
         
         self.system_prompt = """
@@ -417,6 +439,24 @@ class FinanceAnalystReActAgent:
         29. create_combined_analysis(symbol, period): Generate comprehensive analysis combining technical and fundamental data
         30. format_combined_analysis(analysis): Format combined analysis results for display
         
+        PORTFOLIO MANAGEMENT TOOLS:
+        31. calculate_risk_metrics(symbols, weights, period): Calculate portfolio risk metrics including VaR, Sharpe ratio, beta, etc.
+        32. optimize_portfolio(symbols, objective, constraints, period): Optimize portfolio weights based on objective (sharpe, min_volatility, max_return)
+        33. generate_efficient_frontier(symbols, num_portfolios, period): Generate efficient frontier by simulating multiple portfolios
+        34. visualize_portfolio(portfolio_data): Create visualizations of portfolio allocation, risk metrics, efficient frontier, etc.
+        
+        BACKTESTING TOOLS:
+        35. backtest_sma_crossover(symbol, short_window, long_window, period, initial_capital): Backtest SMA crossover strategy
+        36. backtest_rsi_strategy(symbol, rsi_period, overbought, oversold, period, initial_capital): Backtest RSI strategy
+        37. backtest_macd_strategy(symbol, fast_period, slow_period, signal_period, period, initial_capital): Backtest MACD strategy
+        38. visualize_backtest_results(backtest_data): Create visualizations of backtest results including performance charts
+        39. paper_trading_simulation(symbol, strategy, parameters, initial_capital, start_date, end_date): Run paper trading simulation
+        
+        PORTFOLIO INTEGRATION TOOLS:
+        40. analyze_portfolio(query): Analyze portfolio based on user query (extract symbols, weights, and perform analysis)
+        41. backtest_strategy(query): Backtest trading strategy based on user query (extract symbol, strategy type, and parameters)
+        42. run_paper_trading(query): Run paper trading simulation based on user query
+        
         When a user asks a question about a stock, you should follow the ReAct pattern:
         1. REASON: Think about what information is needed to answer the query
         2. ACT: Select and execute the appropriate tool(s)
@@ -439,6 +479,10 @@ class FinanceAnalystReActAgent:
         - For benchmark comparisons, use compare_performance (27)
         - For visualizing financial ratios with peer comparisons, use visualize_financial_ratios (28)
         - For comprehensive stock analysis combining technical and fundamental factors, use create_combined_analysis (29)
+        - For portfolio analysis and risk metrics, use analyze_portfolio (40)
+        - For portfolio optimization and efficient frontier, use analyze_portfolio with optimization keywords (40)
+        - For backtesting trading strategies, use backtest_strategy (41)
+        - For paper trading simulation, use run_paper_trading (42)
         
         Always format your response in a clear, professional manner with sections for:
         - Summary: A brief overview of the findings
@@ -551,17 +595,30 @@ class FinanceAnalystReActAgent:
             
             # Default to AAPL if no symbol found
             return "AAPL"
-    
+
     def determine_tools_needed(self, query):
-        """Determine which tools are needed based on the query using ReAct pattern"""
+        """Determine which financial tools are needed based on the query"""
         query = query.lower()
         tools_needed = []
         
-        # Detect asset type (stock, crypto, forex)
+        # Detect asset type and whether real-time data is needed
         asset_type = self._detect_asset_type(query)
-        
-        # Detect if real-time data is needed
         needs_real_time = self._needs_real_time_data(query)
+        
+        # Check for portfolio management needs
+        if any(term in query for term in ["portfolio", "allocation", "risk metrics", "sharpe", "var", "efficient frontier", "optimize"]):
+            tools_needed.append("analyze_portfolio")
+            return tools_needed
+        
+        # Check for backtesting needs
+        if any(term in query for term in ["backtest", "strategy", "sma crossover", "rsi strategy", "macd strategy"]):
+            tools_needed.append("backtest_strategy")
+            return tools_needed
+        
+        # Check for paper trading simulation needs
+        if any(term in query for term in ["paper trading", "simulate trading", "trading simulation"]):
+            tools_needed.append("run_paper_trading")
+            return tools_needed
         
         # Check for real-time stock price information
         if any(term in query for term in ["price", "worth", "value", "cost", "current", "how much"]):
@@ -612,35 +669,6 @@ class FinanceAnalystReActAgent:
         if asset_type == "stock" and any(term in query for term in ["chart", "graph", "plot", "visual", "picture", "show me"]):
             tools_needed.append("visualize_stock")
         
-        # Check for economic indicator needs
-        if any(term in query for term in ["economy", "economic", "gdp", "inflation", "unemployment", "interest rate", "treasury", "yield", "retail sales", "consumer sentiment", "macro"]):
-            tools_needed.append("get_economic_indicator")
-        
-        # Check for predictive analytics and forecasting needs
-        if any(term in query for term in ["predict", "forecast", "future", "projection", "outlook", "next week", "next month", "next year", "price target", "will it go up", "will it go down", "prediction"]):
-            # Default to Prophet for forecasting
-            tools_needed.append("forecast_with_prophet")
-            
-            # If query mentions neural networks or deep learning, use LSTM
-            if any(term in query for term in ["neural", "deep learning", "lstm", "ai forecast", "machine learning", "advanced forecast"]):
-                tools_needed.append("forecast_with_lstm")
-        
-        # Check for volatility analysis needs
-        if any(term in query for term in ["volatility", "risk", "stable", "unstable", "standard deviation", "variance", "fluctuation", "market risk"]):
-            tools_needed.append("calculate_volatility")
-        
-        # Check for anomaly detection needs
-        if any(term in query for term in ["anomaly", "unusual", "outlier", "abnormal", "strange", "suspicious", "irregular", "detect", "pattern"]):
-            tools_needed.append("detect_anomalies")
-        
-        # Check for scenario analysis needs
-        if any(term in query for term in ["scenario", "bull case", "bear case", "best case", "worst case", "what if", "monte carlo", "simulation", "multiple scenarios", "stress test"]):
-            tools_needed.append("scenario_analysis")
-        
-        # Check for stationarity testing needs
-        if any(term in query for term in ["stationary", "mean reverting", "unit root", "time series properties", "adf test", "statistical test"]):
-            tools_needed.append("check_stationarity")
-        
         # If nothing specific was detected, get appropriate default info based on asset type
         if not tools_needed:
             if asset_type == "stock":
@@ -656,6 +684,103 @@ class FinanceAnalystReActAgent:
                 tools_needed = ["get_stock_price", "get_company_info"]
         
         return tools_needed
+    
+    def _detect_asset_type(self, query):
+        """Detect the type of asset being queried (stock, crypto, forex)"""
+        query = query.lower()
+        
+        # Check for cryptocurrency keywords
+        crypto_keywords = ["crypto", "bitcoin", "btc", "ethereum", "eth", "cryptocurrency", "token", "coin"]
+        if any(keyword in query for keyword in crypto_keywords):
+            return "crypto"
+        
+        # Check for forex keywords
+        forex_keywords = ["forex", "currency", "exchange rate", "eur/usd", "usd/jpy", "gbp", "aud", "cad", "fx"]
+        if any(keyword in query for keyword in forex_keywords):
+            return "forex"
+        
+        # Default to stock
+        return "stock"
+        
+    def _needs_real_time_data(self, query):
+        """Determine if real-time data is needed based on query"""
+        query = query.lower()
+        
+        # Keywords suggesting real-time data needs
+        real_time_keywords = [
+            "real-time", "realtime", "real time", "live", "current", "right now", "latest", 
+            "up to the minute", "intraday", "minute", "hourly", "today's", "day trading", 
+            "scalping", "tick", "second", "instant", "immediate", "now"
+        ]
+        
+        return any(keyword in query for keyword in real_time_keywords)
+    
+    def process_query(self, query):
+        """Process a user query using the ReAct pattern and return a response"""
+        # REASON: Determine which tools to use based on the query
+        print(f"REACT - REASON: Analyzing query '{query}'")
+        tools_needed = self.determine_tools_needed(query)
+        
+        # Check if portfolio integration tools are needed
+        if "analyze_portfolio" in tools_needed:
+            print(f"REACT - ACT: Using portfolio analysis tool with full query")
+            result = self.tools["analyze_portfolio"](query)
+            return result
+            
+        elif "backtest_strategy" in tools_needed:
+            print(f"REACT - ACT: Using backtesting tool with full query")
+            result = self.tools["backtest_strategy"](query)
+            return result
+            
+        elif "run_paper_trading" in tools_needed:
+            print(f"REACT - ACT: Using paper trading simulation tool with full query")
+            result = self.tools["run_paper_trading"](query)
+            return result
+        
+        # For standard single-stock analysis, continue with normal flow
+        # ACT: Extract stock symbol from query
+        symbol = self.extract_stock_symbol(query)
+        print(f"REACT - ACT: Extracted symbol '{symbol}'")
+        
+        # ACT: Execute tools
+        results = {}
+        for tool_name in tools_needed:
+            if tool_name in self.tools:
+                print(f"REACT - ACT: Executing tool '{tool_name}'")
+                try:
+                    if tool_name == "get_economic_indicator":
+                        # Economic indicators don't need a symbol
+                        results[tool_name] = self.tools[tool_name](query)
+                    else:
+                        # Most tools need a symbol
+                        results[tool_name] = self.tools[tool_name](symbol)
+                except Exception as e:
+                    print(f"REACT - ERROR: Tool '{tool_name}' failed with error: {str(e)}")
+                    results[tool_name] = f"Error: {str(e)}"
+            else:
+                print(f"REACT - ERROR: Tool '{tool_name}' not found")
+        
+        # OBSERVE: Analyze results
+        print(f"REACT - OBSERVE: Analyzing results from {len(results)} tools")
+        
+        # Format results into a response
+        response = self._format_response(query, symbol, results)
+        
+        return response
+    
+    def _format_response(self, query, symbol, results):
+        """Format the results into a structured response"""
+        # Create a structured response with sections
+        response = f"# Financial Analysis for {symbol}\n\n"
+        
+        # Add sections based on available results
+        for tool_name, result in results.items():
+            if isinstance(result, str) and result.startswith("Error"):
+                response += f"## {tool_name.replace('_', ' ').title()}\n{result}\n\n"
+            else:
+                response += f"## {tool_name.replace('_', ' ').title()}\n{result}\n\n"
+        
+        return response
         
     def _detect_asset_type(self, query):
         """Detect the type of asset being queried (stock, crypto, forex)"""
@@ -690,10 +815,29 @@ class FinanceAnalystReActAgent:
     def process_query(self, query):
         """Process a user query using the ReAct pattern and return a response"""
         try:
-            # REASON: Extract symbol and determine which tools are needed
+            # REASON: Determine which tools are needed based on the query
+            tools_needed = self.determine_tools_needed(query)
+            
+            # Handle portfolio integration tools first (these take the full query as input)
+            if "analyze_portfolio" in tools_needed:
+                print(f"REACT - ACT: Using analyze_portfolio integration tool with full query")
+                result = self.tools["analyze_portfolio"](query)
+                return result
+                
+            elif "backtest_strategy" in tools_needed:
+                print(f"REACT - ACT: Using backtest_strategy integration tool with full query")
+                result = self.tools["backtest_strategy"](query)
+                return result
+                
+            elif "run_paper_trading" in tools_needed:
+                print(f"REACT - ACT: Using run_paper_trading integration tool with full query")
+                result = self.tools["run_paper_trading"](query)
+                return result
+            
+            # For standard single-asset analysis, continue with normal flow
+            # REASON: Extract symbol and determine asset type
             asset_type = self._detect_asset_type(query)
             symbol = self.extract_stock_symbol(query)
-            tools_needed = self.determine_tools_needed(query)
             needs_real_time = self._needs_real_time_data(query)
             
             print(f"\nREACT - REASON: Analyzing query for asset type: {asset_type}, symbol: {symbol}")
