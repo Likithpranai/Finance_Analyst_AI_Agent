@@ -61,9 +61,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isSidebarOpen, darkMode }
       switch (data.type) {
         case 'thinking':
           updateMessageStatus(data.message_id, 'thinking');
+          // If tools are provided, update them
+          if (data.tools && data.tools.length > 0) {
+            data.tools.forEach(tool => {
+              updateToolExecution(data.message_id, tool);
+            });
+          }
           break;
           
         case 'typing':
+          if (data.content) {
+            updateMessage(data.message_id, {
+              content: data.content,
+              status: 'typing'
+            });
+          }
+          break;
+          
+        case 'partial':
           if (data.content) {
             updateMessage(data.message_id, {
               content: data.content,
@@ -117,10 +132,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isSidebarOpen, darkMode }
     
     // Send message to WebSocket
     if (connectionStatus === 'connected') {
+      // Add timestamp to message ID to ensure uniqueness
+      const messageId = `${assistantMessageId}-${Date.now()}`;
+      
       sendMessage(JSON.stringify({
         query: content,
-        message_id: assistantMessageId
+        message_id: messageId
       }));
+      
+      // Update the message ID in the state to match what we sent
+      updateMessage(assistantMessageId, { id: messageId });
     } else {
       // Fallback to REST API if WebSocket is not connected
       fetch('http://localhost:8000/query', {
@@ -135,8 +156,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isSidebarOpen, darkMode }
       })
       .then(response => response.json())
       .then(data => {
+        // Format the response as markdown if it's a complex object
+        let formattedResponse = data.response;
+        if (typeof formattedResponse === 'object') {
+          formattedResponse = '```json\n' + JSON.stringify(formattedResponse, null, 2) + '\n```';
+        }
+        
         updateMessage(assistantMessageId, {
-          content: data.response,
+          content: formattedResponse,
           status: 'complete'
         });
         setIsProcessing(false);
@@ -233,152 +260,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isSidebarOpen, darkMode }
           )}
         </div>
       </div>
-    </div>
-  );
-};
-
-export default ChatInterface;
-      }
-    };
-    
-    return () => {
-      // Disconnect WebSocket when component unmounts
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
-  }, []);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSendMessage = (message: string) => {
-    if (!message.trim()) return;
-    
-    // Add user message
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: message,
-      timestamp: new Date()
-    };
-    
-    // Add assistant message with loading status
-    const assistantMessage: Message = {
-      id: `assistant-${Date.now()}`,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      status: 'loading'
-    };
-    
-    setMessages(prev => [...prev, userMessage, assistantMessage]);
-    setIsProcessing(true);
-    
-    // Send message to WebSocket if connected
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-      websocket.send(JSON.stringify({
-        query: message
-      }));
-    } else {
-      // Fallback to REST API if WebSocket is not connected
-      fetch('http://localhost:8000/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: message
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        setMessages(prev => {
-          const newMessages = [...prev];
-          const lastIndex = newMessages.length - 1;
-          if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
-            newMessages[lastIndex] = {
-              ...newMessages[lastIndex],
-              content: data.response.response || data.response.toString(),
-              status: 'complete'
-            };
-          }
-          return newMessages;
-        });
-        setIsProcessing(false);
-      })
-      .catch(error => {
-        setMessages(prev => {
-          const newMessages = [...prev];
-          const lastIndex = newMessages.length - 1;
-          if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
-            newMessages[lastIndex] = {
-              ...newMessages[lastIndex],
-              content: `Error: ${error.message}`,
-              status: 'error'
-            };
-          }
-          return newMessages;
-        });
-        setIsProcessing(false);
-      });
-    }
-  };
-
-  return (
-    <div className={`chat-interface ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'} ${darkMode ? 'dark' : 'light'}`}>
-      <div className="chat-header">
-        <h1>Finance Analyst AI</h1>
-        <div className="connection-status">
-          <span className={`status-indicator ${connectionStatus}`}></span>
-          {connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
-        </div>
-      </div>
-      
-      <div className="chat-messages">
-        {messages.length === 0 && (
-          <div className="welcome-message">
-            <h2>Welcome to Finance Analyst AI</h2>
-            <p>Ask me anything about stocks, technical analysis, or financial markets.</p>
-            <div className="example-queries">
-              <h3>Example queries:</h3>
-              <ul>
-                <li onClick={() => handleSendMessage("What's the current price of AAPL?")}>What's the current price of AAPL?</li>
-                <li onClick={() => handleSendMessage("Calculate RSI for TSLA")}>Calculate RSI for TSLA</li>
-                <li onClick={() => handleSendMessage("Show me MACD for MSFT")}>Show me MACD for MSFT</li>
-                <li onClick={() => handleSendMessage("Compare AMZN and GOOG fundamentals")}>Compare AMZN and GOOG fundamentals</li>
-              </ul>
-            </div>
-          </div>
-        )}
-        
-        <AnimatePresence>
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ChatMessage 
-                message={message}
-                darkMode={darkMode}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        
-        <div ref={messagesEndRef} />
-      </div>
-      
-      <ChatInput 
-        onSendMessage={handleSendMessage} 
-        isDisabled={isProcessing}
-        darkMode={darkMode}
-      />
     </div>
   );
 };

@@ -67,9 +67,9 @@ const useChatMessages = () => {
         
         // Find if this tool already exists in the message
         const existingToolExecutions = msg.toolExecutions || [];
-        const toolIndex = existingToolExecutions.findIndex(t => 
-          t.tool === toolExecution.tool && 
-          JSON.stringify(t.input) === JSON.stringify(toolExecution.input)
+        const toolIndex = existingToolExecutions.findIndex((t: ToolExecution) => 
+          t.tool_name === toolExecution.tool_name && 
+          JSON.stringify(t.tool_input) === JSON.stringify(toolExecution.tool_input)
         );
         
         let updatedToolExecutions;

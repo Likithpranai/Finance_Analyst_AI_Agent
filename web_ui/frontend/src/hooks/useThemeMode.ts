@@ -30,7 +30,7 @@ const useThemeMode = (): [ThemeMode, () => void] => {
 
   // Toggle between dark and light modes
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+    setTheme((prevTheme: ThemeMode) => prevTheme === 'dark' ? 'light' : 'dark');
   };
 
   return [theme, toggleTheme];
