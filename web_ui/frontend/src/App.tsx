@@ -1,27 +1,18 @@
 import React from 'react';
-import ChatInterface from './components/ChatInterface';
-import Sidebar from './components/Sidebar';
+import GrokChatUI from './components/GrokChatUI';
 import { AppProvider, useAppContext } from './context/AppContext';
 import './styles/App.css';
 import './styles/index.css';
 
 const AppContent: React.FC = () => {
-  const { theme, isSidebarOpen, setIsSidebarOpen } = useAppContext();
+  const { theme, toggleTheme } = useAppContext();
   
   return (
-    <div className={`app-container ${theme}`}>
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
+    <div className="app-container grok-mode">
+      <GrokChatUI 
         darkMode={theme === 'dark'}
-        toggleDarkMode={() => {}}
+        toggleDarkMode={toggleTheme}
       />
-      <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-        <ChatInterface 
-          isSidebarOpen={isSidebarOpen}
-          darkMode={theme === 'dark'}
-        />
-      </main>
     </div>
   );
 };

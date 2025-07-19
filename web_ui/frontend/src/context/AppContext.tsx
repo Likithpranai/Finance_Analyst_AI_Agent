@@ -16,6 +16,8 @@ interface AppContextType {
   updateMessageStatus: (messageId: string, status: 'complete' | 'thinking' | 'typing' | 'error') => void;
   updateToolExecution: (messageId: string, toolExecution: any) => void;
   clearMessages: () => void;
+  sendMessage: (content: string) => void;
+  isProcessing: boolean;
   
   // UI state
   isSidebarOpen: boolean;
@@ -38,6 +40,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   } = useChatMessages();
   
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  
+  // Send message function that handles the chat flow
+  const sendMessage = (content: string) => {
+    if (!content.trim() || isProcessing) return;
+    
+    // Add user message
+    const userMessageId = addMessage('user', content);
+    
+    // Set processing state
+    setIsProcessing(true);
+    
+    // Add assistant thinking message
+    const assistantMessageId = addMessage('assistant', '', 'thinking');
+    
+    // Simulate API call - in a real app, this would be an actual API call
+    setTimeout(() => {
+      // Update assistant message with response
+      updateMessage(assistantMessageId, {
+        content: `This is a simulated response to: "${content}". In a real implementation, this would call the Finance Analyst AI backend.`,
+        status: 'complete'
+      });
+      
+      setIsProcessing(false);
+    }, 1500);
+  };
   
   // Create the value object
   const value: AppContextType = {
@@ -49,6 +77,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateMessageStatus,
     updateToolExecution,
     clearMessages,
+    sendMessage,
+    isProcessing,
     isSidebarOpen,
     setIsSidebarOpen
   };

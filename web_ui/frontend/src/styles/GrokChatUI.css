@@ -1,0 +1,411 @@
+/* GrokChatUI.css */
+.grok-chat-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Top Bar */
+.grok-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #000000;
+  border-bottom: 1px solid #333333;
+}
+
+.grok-top-bar-left, .grok-top-bar-right {
+  display: flex;
+  align-items: center;
+}
+
+.grok-icon {
+  margin: 0 8px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.grok-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.grok-share {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-radius: 18px;
+  padding: 5px 12px;
+  width: auto;
+  height: auto;
+}
+
+.grok-logo {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(16, 185, 129, 0.2));
+  border-radius: 50%;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Chat Messages Area */
+.grok-chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(to bottom, #000000, #0a0a0a);
+}
+
+.grok-message {
+  margin-bottom: 20px;
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.5;
+  position: relative;
+}
+
+.grok-user-message {
+  align-self: flex-end;
+  background-color: #333333;
+  color: #ffffff;
+  border-top-right-radius: 4px;
+}
+
+.grok-ai-message {
+  align-self: flex-start;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border-top-left-radius: 4px;
+}
+
+.grok-reactions {
+  font-size: 12px;
+  color: #888888;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Welcome Message */
+.grok-welcome-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin: auto;
+  max-width: 600px;
+}
+
+.grok-welcome-message h1 {
+  background: linear-gradient(90deg, #3B82F6, #10B981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.grok-welcome-message p {
+  color: #888888;
+  margin-bottom: 30px;
+  font-size: 1.2rem;
+}
+
+/* Categories Grid */
+.grok-categories {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.grok-category {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(26, 26, 26, 0.6);
+  border: 1px solid #333333;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.grok-category:hover {
+  background-color: rgba(38, 38, 38, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.grok-category-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.grok-category-title {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Example Queries */
+.grok-example-queries {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.grok-example {
+  background-color: rgba(26, 26, 26, 0.6);
+  border: 1px solid #333333;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.grok-example:hover {
+  background-color: #252525;
+  transform: translateY(-2px);
+}
+
+/* Input Bar */
+.grok-input-bar {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: #000000;
+  border-top: 1px solid #333333;
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grok-input-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background-color: #1a1a1a;
+  border-radius: 24px;
+  padding: 8px 16px;
+  margin: 0 10px;
+  border: 1px solid #333333;
+  transition: all 0.2s ease;
+}
+
+.grok-input-container:focus-within {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.grok-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 16px;
+  padding: 8px;
+  outline: none;
+}
+
+.grok-input::placeholder {
+  color: #888888;
+}
+
+.grok-mic-icon, .grok-send-icon {
+  color: #ffffff;
+  font-size: 20px;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.grok-send-icon {
+  background: linear-gradient(135deg, #3B82F6, #10B981);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.grok-think-harder {
+  background-color: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10B981;
+  padding: 10px 16px;
+  border-radius: 24px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.grok-think-harder:hover:not(:disabled) {
+  background-color: #252525;
+}
+
+.grok-think-harder:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.grok-indicator {
+  display: flex;
+  align-items: center;
+  color: #888888;
+  font-size: 14px;
+  white-space: nowrap;
+  gap: 6px;
+}
+
+.grok-model-name {
+  font-weight: 500;
+  color: #3B82F6;
+}
+
+.grok-version-badge {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #3B82F6;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Light Mode Styles */
+.light-mode .grok-chat-container {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+.light-mode .grok-top-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.light-mode .grok-chat-messages {
+  background: linear-gradient(to bottom, #f8fafc, #ffffff);
+}
+
+.light-mode .grok-user-message {
+  background-color: #e0f2fe;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+}
+
+.light-mode .grok-ai-message {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+}
+
+.light-mode .grok-input-bar {
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.light-mode .grok-input-container {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.light-mode .grok-input {
+  color: #1e293b;
+}
+
+.light-mode .grok-think-harder {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #047857;
+}
+
+.light-mode .grok-example {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.light-mode .grok-category {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.light-mode .grok-category:hover {
+  background-color: #f8fafc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.light-mode .grok-model-name {
+  color: #0284c7;
+}
+
+.light-mode .grok-version-badge {
+  background-color: rgba(2, 132, 199, 0.1);
+  color: #0284c7;
+}
+
+.light-mode .grok-welcome-message h1 {
+  background: linear-gradient(90deg, #0284c7, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light-mode .grok-welcome-message p {
+  color: #64748b;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .grok-example-queries {
+    grid-template-columns: 1fr;
+  }
+  
+  .grok-message {
+    max-width: 90%;
+  }
+  
+  .grok-top-bar-left .grok-icon:nth-child(n+4),
+  .grok-top-bar-right .grok-icon:nth-child(n+3) {
+    display: none;
+  }
+  
+  .grok-input-bar {
+    padding: 10px;
+  }
+  
+  .grok-think-harder {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
