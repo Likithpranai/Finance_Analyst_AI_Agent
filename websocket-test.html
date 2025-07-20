@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Analyst AI Agent - WebSocket Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .connecting { background-color: #fff3cd; color: #856404; }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        #messageLog {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+        }
+        
+        .message {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .sent {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .received {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Finance Analyst AI Agent - WebSocket Test</h1>
+    
+    <div class="card">
+        <h2>Connection Status</h2>
+        <p>WebSocket: <span id="connectionStatus" class="status disconnected">Disconnected</span></p>
+        <p>Backend Health: <span id="backendHealth">Checking...</span></p>
+        
+        <div>
+            <label for="wsUrl">WebSocket URL:</label>
+            <input type="text" id="wsUrl" value="ws://localhost:8000/ws/test-client" />
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" disabled>Disconnect</button>
+            <button id="checkHealthBtn">Check Backend Health</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Send Message</h2>
+        <div>
+            <label for="messageInput">Query:</label>
+            <input type="text" id="messageInput" value="What is the current price of Apple stock?" />
+        </div>
+        <div style="margin-top: 10px;">
+            <button id="sendBtn" disabled>Send Query</button>
+            <button id="sendPingBtn" disabled>Send Ping</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Message Log</h2>
+        <div id="messageLog"></div>
+        <button id="clearLogBtn">Clear Log</button>
+    </div>
+    
+    <script>
+        // DOM Elements
+        const connectionStatus = document.getElementById('connectionStatus');
+        const backendHealth = document.getElementById('backendHealth');
+        const wsUrlInput = document.getElementById('wsUrl');
+        const messageInput = document.getElementById('messageInput');
+        const messageLog = document.getElementById('messageLog');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const sendPingBtn = document.getElementById('sendPingBtn');
+        const checkHealthBtn = document.getElementById('checkHealthBtn');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+        
+        // WebSocket instance
+        let ws = null;
+        
+        // Helper functions
+        function updateConnectionStatus(status) {
+            connectionStatus.textContent = status;
+            connectionStatus.className = `status ${status.toLowerCase()}`;
+            
+            if (status === 'Connected') {
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                sendBtn.disabled = false;
+                sendPingBtn.disabled = false;
+            } else {
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                sendBtn.disabled = true;
+                sendPingBtn.disabled = true;
+            }
+        }
+        
+        function logMessage(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'timestamp';
+            timestampSpan.textContent = `[${timestamp}] `;
+            
+            msgDiv.appendChild(timestampSpan);
+            
+            // Try to format as JSON if it's a JSON string
+            if (typeof message === 'string' && (message.startsWith('{') || message.startsWith('['))) {
+                try {
+                    const jsonObj = JSON.parse(message);
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(jsonObj, null, 2);
+                    msgDiv.appendChild(pre);
+                } catch (e) {
+                    msgDiv.appendChild(document.createTextNode(message));
+                }
+            } else {
+                msgDiv.appendChild(document.createTextNode(message));
+            }
+            
+            messageLog.appendChild(msgDiv);
+            messageLog.scrollTop = messageLog.scrollHeight;
+        }
+        
+        // Connect to WebSocket
+        function connectWebSocket() {
+            const url = wsUrlInput.value;
+            
+            try {
+                updateConnectionStatus('Connecting');
+                logMessage(`Connecting to ${url}...`);
+                
+                ws = new WebSocket(url);
+                
+                ws.onopen = function() {
+                    updateConnectionStatus('Connected');
+                    logMessage(`Connected to ${url}`, 'received');
+                };
+                
+                ws.onmessage = function(event) {
+                    logMessage(`Received: ${event.data}`, 'received');
+                };
+                
+                ws.onclose = function(event) {
+                    updateConnectionStatus('Disconnected');
+                    logMessage(`Connection closed: Code ${event.code} - ${event.reason || 'No reason provided'} - Clean: ${event.wasClean}`, 'error');
+                    ws = null;
+                };
+                
+                ws.onerror = function(error) {
+                    updateConnectionStatus('Disconnected');
+                    logMessage(`WebSocket error occurred`, 'error');
+                    console.error('WebSocket error:', error);
+                };
+            } catch (e) {
+                updateConnectionStatus('Disconnected');
+                logMessage(`Failed to create WebSocket: ${e.message}`, 'error');
+            }
+        }
+        
+        // Disconnect from WebSocket
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                updateConnectionStatus('Disconnected');
+                logMessage('Disconnected by user');
+            }
+        }
+        
+        // Send message
+        function sendMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const query = messageInput.value;
+                const message = {
+                    query: query,
+                    message_id: `msg-${Date.now()}`
+                };
+                
+                const messageStr = JSON.stringify(message);
+                ws.send(messageStr);
+                logMessage(`Sent: ${messageStr}`, 'sent');
+            } else {
+                logMessage('WebSocket is not connected', 'error');
+            }
+        }
+        
+        // Send ping
+        function sendPing() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const ping = {
+                    type: 'ping'
+                };
+                
+                const pingStr = JSON.stringify(ping);
+                ws.send(pingStr);
+                logMessage(`Sent: ${pingStr}`, 'sent');
+            } else {
+                logMessage('WebSocket is not connected', 'error');
+            }
+        }
+        
+        // Check backend health
+        function checkBackendHealth() {
+            const url = wsUrlInput.value.replace('ws', 'http').replace('/ws/test-client', '/health');
+            
+            logMessage(`Checking backend health at ${url}...`);
+            backendHealth.textContent = 'Checking...';
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    backendHealth.textContent = 'Online';
+                    logMessage(`Backend health: ${JSON.stringify(data)}`, 'received');
+                })
+                .catch(error => {
+                    backendHealth.textContent = 'Offline';
+                    logMessage(`Backend health check failed: ${error.message}`, 'error');
+                });
+        }
+        
+        // Clear log
+        function clearLog() {
+            messageLog.innerHTML = '';
+            logMessage('Log cleared');
+        }
+        
+        // Event listeners
+        connectBtn.addEventListener('click', connectWebSocket);
+        disconnectBtn.addEventListener('click', disconnectWebSocket);
+        sendBtn.addEventListener('click', sendMessage);
+        sendPingBtn.addEventListener('click', sendPing);
+        checkHealthBtn.addEventListener('click', checkBackendHealth);
+        clearLogBtn.addEventListener('click', clearLog);
+        
+        // Initialize
+        updateConnectionStatus('Disconnected');
+        checkBackendHealth();
+        logMessage('WebSocket test page loaded');
+    </script>
+</body>
+</html>

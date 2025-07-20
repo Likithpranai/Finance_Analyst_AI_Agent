@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .connection-status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        #log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    
+    <div id="status" class="connection-status info">Checking connection status...</div>
+    
+    <div>
+        <h3>Connection Options:</h3>
+        <button id="connect-relative">Connect with Relative URL</button>
+        <button id="connect-localhost">Connect with localhost</button>
+        <button id="connect-127">Connect with 127.0.0.1</button>
+        <button id="connect-custom">Connect with Custom URL</button>
+        <input type="text" id="custom-url" placeholder="ws://example.com/ws/test-client" style="width: 300px; padding: 8px;">
+    </div>
+    
+    <div>
+        <h3>Test Actions:</h3>
+        <button id="send-ping">Send Ping</button>
+        <button id="send-query">Send Test Query</button>
+        <button id="disconnect">Disconnect</button>
+        <button id="clear-log">Clear Log</button>
+    </div>
+    
+    <h3>Connection Log:</h3>
+    <div id="log"></div>
+    
+    <h3>Network Information:</h3>
+    <pre id="network-info">Loading network information...</pre>
+    
+    <script>
+        let ws = null;
+        const clientId = 'test-client-' + Math.random().toString(36).substring(2, 10);
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        const networkInfo = document.getElementById('network-info');
+        
+        // Log function
+        function logMessage(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.innerHTML = `<strong>${timestamp}</strong>: ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Update connection status
+        function updateStatus(message, type) {
+            status.className = `connection-status ${type}`;
+            status.textContent = message;
+        }
+        
+        // Connect to WebSocket
+        function connect(url) {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            
+            try {
+                updateStatus(`Connecting to ${url}...`, 'warning');
+                logMessage(`Attempting to connect to ${url}`, 'warning');
+                
+                ws = new WebSocket(url);
+                
+                ws.onopen = function() {
+                    updateStatus(`Connected to ${url}`, 'success');
+                    logMessage(`Connection established to ${url}`, 'success');
+                };
+                
+                ws.onmessage = function(event) {
+                    logMessage(`Received message: ${event.data}`, 'info');
+                    try {
+                        const data = JSON.parse(event.data);
+                        logMessage(`Parsed message: ${JSON.stringify(data, null, 2)}`, 'info');
+                    } catch (e) {
+                        logMessage(`Failed to parse message as JSON: ${e.message}`, 'error');
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    updateStatus(`Disconnected: Code ${event.code} - ${event.reason || 'No reason provided'}`, 'error');
+                    logMessage(`Connection closed: Code ${event.code} - ${event.reason || 'No reason provided'} - Clean: ${event.wasClean}`, 'error');
+                    ws = null;
+                };
+                
+                ws.onerror = function(error) {
+                    updateStatus('Connection error', 'error');
+                    logMessage(`WebSocket error occurred`, 'error');
+                    console.error('WebSocket error:', error);
+                };
+            } catch (e) {
+                updateStatus(`Failed to create WebSocket: ${e.message}`, 'error');
+                logMessage(`Failed to create WebSocket: ${e.message}`, 'error');
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('connect-relative').addEventListener('click', function() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname;
+            const url = `${protocol}//${host}:8000/ws/${clientId}`;
+            connect(url);
+        });
+        
+        document.getElementById('connect-localhost').addEventListener('click', function() {
+            connect(`ws://localhost:8000/ws/${clientId}`);
+        });
+        
+        document.getElementById('connect-127').addEventListener('click', function() {
+            connect(`ws://127.0.0.1:8000/ws/${clientId}`);
+        });
+        
+        document.getElementById('connect-custom').addEventListener('click', function() {
+            const customUrl = document.getElementById('custom-url').value;
+            if (customUrl) {
+                connect(customUrl);
+            } else {
+                logMessage('Please enter a custom URL', 'error');
+            }
+        });
+        
+        document.getElementById('send-ping').addEventListener('click', function() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const pingMessage = JSON.stringify({ type: 'ping' });
+                ws.send(pingMessage);
+                logMessage(`Sent: ${pingMessage}`, 'info');
+            } else {
+                logMessage('WebSocket is not connected', 'error');
+            }
+        });
+        
+        document.getElementById('send-query').addEventListener('click', function() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const queryMessage = JSON.stringify({ 
+                    query: "What is the current price of Apple stock?", 
+                    message_id: `msg-${Date.now()}`
+                });
+                ws.send(queryMessage);
+                logMessage(`Sent query: ${queryMessage}`, 'info');
+            } else {
+                logMessage('WebSocket is not connected', 'error');
+            }
+        });
+        
+        document.getElementById('disconnect').addEventListener('click', function() {
+            if (ws) {
+                ws.close();
+                updateStatus('Disconnected by user', 'warning');
+                logMessage('Disconnected by user', 'warning');
+            } else {
+                logMessage('WebSocket is not connected', 'error');
+            }
+        });
+        
+        document.getElementById('clear-log').addEventListener('click', function() {
+            log.innerHTML = '';
+            logMessage('Log cleared', 'info');
+        });
+        
+        // Collect network information
+        function collectNetworkInfo() {
+            const info = {
+                userAgent: navigator.userAgent,
+                location: {
+                    href: window.location.href,
+                    hostname: window.location.hostname,
+                    protocol: window.location.protocol,
+                    port: window.location.port || (window.location.protocol === 'https:' ? '443' : '80')
+                },
+                backendUrl: 'http://localhost:8000',
+                networkStatus: navigator.onLine ? 'Online' : 'Offline'
+            };
+            
+            // Check if backend is reachable
+            fetch('http://localhost:8000/health', { method: 'GET' })
+                .then(response => {
+                    info.backendHealth = `Reachable: ${response.status} ${response.statusText}`;
+                    updateNetworkInfo(info);
+                })
+                .catch(error => {
+                    info.backendHealth = `Unreachable: ${error.message}`;
+                    updateNetworkInfo(info);
+                });
+        }
+        
+        function updateNetworkInfo(info) {
+            networkInfo.textContent = JSON.stringify(info, null, 2);
+        }
+        
+        // Initialize
+        collectNetworkInfo();
+        logMessage('WebSocket test page loaded', 'info');
+        updateStatus('Not connected', 'warning');
+    </script>
+</body>
+</html>
