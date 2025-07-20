@@ -257,7 +257,7 @@ function App() {
           {messages.map(msg => (
             <div key={msg.id} className={`message ${msg.sender}`}>
               <div className="message-content">
-                {msg.sender === 'agent' && <div className="agent-icon">📊</div>}
+                {msg.sender === 'agent' && <div className="agent-icon"><i className="fas fa-chart-line"></i></div>}
                 <div className="message-text">
                   {msg.sender === 'agent' ? (
                     <>
@@ -285,11 +285,11 @@ function App() {
               {msg.sender === 'agent' && !msg.error && (
                 <div className="message-footer">
                   <div className="message-actions">
-                    <span className="action-button" title="Like">👍</span>
-                    <span className="action-button" title="Dislike">👎</span>
-                    <span className="action-button" title="Regenerate">🔄</span>
-                    <span className="action-button" title="Copy to clipboard">📋</span>
-                    <span className="action-button" title="More options">⋮</span>
+                    <span className="action-button" title="Like"><i className="fas fa-thumbs-up"></i></span>
+                    <span className="action-button" title="Dislike"><i className="fas fa-thumbs-down"></i></span>
+                    <span className="action-button" title="Regenerate"><i className="fas fa-sync-alt"></i></span>
+                    <span className="action-button" title="Copy to clipboard"><i className="fas fa-clipboard"></i></span>
+                    <span className="action-button" title="More options"><i className="fas fa-ellipsis-v"></i></span>
                   </div>
                   {msg.processingTime && (
                     <span className="processing-time">{msg.processingTime.toFixed(2)}s</span>
@@ -301,7 +301,7 @@ function App() {
           {isLoading && (
             <div className="message agent loading">
               <div className="message-content">
-                <div className="agent-icon">📊</div>
+                <div className="agent-icon"><i className="fas fa-chart-line"></i></div>
                 <div className="loading-indicator">
                   <div className="dot"></div>
                   <div className="dot"></div>

@@ -453,20 +453,25 @@
 }
 
 .agent-icon {
-  width: 32px;
-  height: 32px;
-  background: var(--primary-color);
-  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 14px;
   flex-shrink: 0;
-  box-shadow: var(--shadow-medium);
-  font-size: 16px;
+  box-shadow: var(--shadow-medium), 0 0 10px rgba(10, 88, 202, 0.3);
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.agent-icon i {
+  font-size: 16px;
+  color: white;
+  z-index: 2;
 }
 
 .agent-icon::after {
@@ -482,14 +487,15 @@
 }
 
 .message-text {
-  padding: 14px 18px;
-  border-radius: 10px;
-  line-height: 1.6;
-  font-size: 14px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  line-height: 1.7;
+  font-size: 14.5px;
   box-shadow: var(--shadow-medium);
   white-space: pre-wrap;
   position: relative;
   border: 1px solid var(--border-color);
+  max-width: 100%;
 }
 
 .user .message-text {
@@ -766,8 +772,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
-  padding-left: 52px;
+  margin-top: 12px;
+  padding-left: 56px;
   opacity: 0.8;
   transition: opacity 0.3s ease;
 }
@@ -787,17 +793,22 @@
   transition: all 0.3s ease;
   background-color: var(--bg-light);
   border-radius: 8px;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
+  color: var(--text-medium);
+  border: 1px solid var(--border-color);
 }
 
 .action-button:hover {
   opacity: 1;
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
   transform: translateY(-2px);
+  color: white;
+  box-shadow: 0 3px 8px rgba(10, 88, 202, 0.3);
 }
 
 .processing-time {
