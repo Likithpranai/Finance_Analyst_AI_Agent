@@ -152,42 +152,191 @@ function App() {
     }
   };
 
+  const handleThinkDeeper = () => {
+    setInput(input + " (Provide deeper analysis)");
+  };
+
   return (
     <div className="app">
       <div className="sidebar">
-        <div className="sidebar-icon">📊</div>
-        <div className="sidebar-icon">📈</div>
-        <div className="sidebar-icon">💹</div>
-        <div className="sidebar-icon">📉</div>
-        <div className="sidebar-icon">💰</div>
-        <div className="sidebar-icon">🏦</div>
-        <div className="sidebar-icon sidebar-divider"></div>
-        <div className="sidebar-icon">⚙️</div>
-        <div className="sidebar-icon">❓</div>
+        <div className="sidebar-icon active">
+          <i className="fas fa-comments-dollar"></i>
+        </div>
+        <div className="sidebar-icon">
+          <i className="fas fa-chart-bar"></i>
+        </div>
+        <div className="sidebar-icon">
+          <i className="fas fa-chart-line"></i>
+        </div>
+        <div className="sidebar-icon">
+          <i className="fas fa-chart-area"></i>
+        </div>
+        <div className="sidebar-icon">
+          <i className="fas fa-cog"></i>
+        </div>
       </div>
       <div className="main">
         <header className="header">
-          <h1 className="title">Finance Analyst AI</h1>
-          <div className="header-icons">
-            <span className="header-button">New Chat</span>
-            <span className="header-button">Share</span>
-            <span className="header-button">Settings</span>
+          <div className="header-main">
+            <h1 className="title">
+              <div className="title-logo">
+                <i className="fas fa-chart-pie"></i>
+              </div>
+              <span className="title-text">Finance <span className="title-highlight">Analyst</span></span>
+              <span className="title-version">v2.0</span>
+            </h1>
+            <div>
+              <button className="header-button">
+                <span className="header-button-icon"><i className="fas fa-file-alt"></i></span>
+                Reports
+              </button>
+              <button className="header-button">
+                <span className="header-button-icon"><i className="fas fa-download"></i></span>
+                Export
+              </button>
+              <button className="header-button primary">
+                <span className="header-button-icon"><i className="fas fa-plus"></i></span>
+                New Analysis
+              </button>
+            </div>
+          </div>
+          <div className="market-ticker">
+            <div className="ticker-item">
+              <span className="ticker-symbol">S&P 500</span>
+              <span className="ticker-price">4,927.11</span>
+              <span className="ticker-change positive">
+                <i className="fas fa-caret-up"></i> 0.74%
+              </span>
+            </div>
+            <div className="ticker-item">
+              <span className="ticker-symbol">NASDAQ</span>
+              <span className="ticker-price">15,628.95</span>
+              <span className="ticker-change positive">
+                <i className="fas fa-caret-up"></i> 1.02%
+              </span>
+            </div>
+            <div className="ticker-item">
+              <span className="ticker-symbol">DOW</span>
+              <span className="ticker-price">38,239.66</span>
+              <span className="ticker-change positive">
+                <i className="fas fa-caret-up"></i> 0.56%
+              </span>
+            </div>
+            <div className="ticker-item">
+              <span className="ticker-symbol">BTC</span>
+              <span className="ticker-price">63,421.85</span>
+              <span className="ticker-change negative">
+                <i className="fas fa-caret-down"></i> 1.24%
+              </span>
+            </div>
+            <div className="ticker-item">
+              <span className="ticker-symbol">ETH</span>
+              <span className="ticker-price">3,089.45</span>
+              <span className="ticker-change negative">
+                <i className="fas fa-caret-down"></i> 0.87%
+              </span>
+            </div>
+            <div className="ticker-item">
+              <span className="ticker-symbol">USD/JPY</span>
+              <span className="ticker-price">156.72</span>
+              <span className="ticker-change positive">
+                <i className="fas fa-caret-up"></i> 0.12%
+              </span>
+            </div>
           </div>
         </header>
         <div className="chat" ref={chatContainerRef}>
           {messages.length === 1 && (
-            <div className="example-queries">
-              <h3>Try asking about:</h3>
-              <div className="query-suggestions">
-                {exampleQueries.map((query, index) => (
-                  <div 
-                    key={index} 
-                    className="query-suggestion" 
-                    onClick={() => setInput(query)}
-                  >
-                    {query}
+            <div className="welcome">
+              <h2>Welcome to Finance Analyst</h2>
+              <p className="welcome-subtitle">Professional-grade financial analysis and market intelligence</p>
+              
+              <div className="dashboard-preview">
+                <div className="dashboard-header">
+                  <h3><i className="fas fa-chart-line"></i> Market Overview</h3>
+                  <div className="dashboard-controls">
+                    <span className="time-filter active">1D</span>
+                    <span className="time-filter">1W</span>
+                    <span className="time-filter">1M</span>
+                    <span className="time-filter">3M</span>
+                    <span className="time-filter">1Y</span>
+                    <span className="time-filter">5Y</span>
                   </div>
-                ))}
+                </div>
+                <div className="chart-container">
+                  <div className="chart-placeholder">
+                    <div className="chart-line"></div>
+                    <div className="chart-line"></div>
+                    <div className="chart-line"></div>
+                    <div className="chart-indicators">
+                      <div className="indicator">
+                        <span className="indicator-name">S&P 500</span>
+                        <span className="indicator-value positive">+0.74%</span>
+                      </div>
+                      <div className="indicator">
+                        <span className="indicator-name">NASDAQ</span>
+                        <span className="indicator-value positive">+1.02%</span>
+                      </div>
+                      <div className="indicator">
+                        <span className="indicator-name">VIX</span>
+                        <span className="indicator-value negative">-2.31%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="query-categories">
+                <div className="query-category">
+                  <div className="category-header">
+                    <i className="fas fa-chart-line"></i>
+                    <h3>Technical Analysis</h3>
+                  </div>
+                  <div className="example-queries">
+                    <div className="example-query" onClick={() => handleExampleQuery("Analyze AAPL with RSI, MACD, and Bollinger Bands. Is it a good time to buy?")}>
+                      <i className="fas fa-chart-area query-icon"></i>
+                      Analyze AAPL with RSI, MACD, and Bollinger Bands
+                    </div>
+                    <div className="example-query" onClick={() => handleExampleQuery("Calculate support and resistance levels for TSLA based on the last 3 months")}>
+                      <i className="fas fa-arrows-alt-v query-icon"></i>
+                      Calculate support and resistance levels for TSLA
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="query-category">
+                  <div className="category-header">
+                    <i className="fas fa-balance-scale"></i>
+                    <h3>Fundamental Analysis</h3>
+                  </div>
+                  <div className="example-queries">
+                    <div className="example-query" onClick={() => handleExampleQuery("Compare P/E, P/B, and profit margins for MSFT, AAPL, and GOOGL")}>
+                      <i className="fas fa-table query-icon"></i>
+                      Compare P/E, P/B, and profit margins for tech giants
+                    </div>
+                    <div className="example-query" onClick={() => handleExampleQuery("Analyze NVDA's latest income statement and balance sheet. Is it financially healthy?")}>
+                      <i className="fas fa-file-invoice-dollar query-icon"></i>
+                      Analyze NVDA's financial statements
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="query-category">
+                  <div className="category-header">
+                    <i className="fas fa-chart-pie"></i>
+                    <h3>Portfolio Analysis</h3>
+                  </div>
+                  <div className="example-queries">
+                    <div className="example-query" onClick={() => handleExampleQuery("Optimize a portfolio with AAPL, MSFT, AMZN, and BRK.B for maximum Sharpe ratio")}>
+                      <i className="fas fa-sliders-h query-icon"></i>
+                      Optimize portfolio for maximum Sharpe ratio
+                    </div>
+                    <div className="example-query" onClick={() => handleExampleQuery("What would be the 5-year return of a portfolio with 40% VOO, 30% QQQ, 20% VGT, and 10% BND?")}>
+                      <i className="fas fa-calculator query-icon"></i>
+                      Calculate 5-year ETF portfolio return
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -250,14 +399,16 @@ function App() {
           <div ref={chatEndRef} />
         </div>
         <div className="input-bar">
-          <div className="think-harder" onClick={() => setInput(input + " (Think deeper about this)")}>Think Harder</div>
+          <div className="think-harder" onClick={handleThinkDeeper}>
+            Advanced Analysis
+          </div>
           <div className="input-container">
             <span className="lock-icon" title="Your queries are secure">🔒</span>
             <input
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Ask about stocks, crypto, forex, or financial analysis..."
+              placeholder="Analyze stocks, financial metrics, market trends, investment strategies..."
               onKeyPress={e => e.key === 'Enter' && handleSend()}
             />
             <button className="send-button" onClick={handleSend} disabled={isLoading || !input.trim()}>
