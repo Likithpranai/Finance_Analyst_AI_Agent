@@ -15,6 +15,10 @@ import yfinance as yf
 from datetime import datetime, timedelta
 import os
 import sys
+import time
+
+# Import the Finance Analyst AI Agent
+from finance_analyst_agent import FinanceAnalystReActAgent
 
 # Add the project root to the path so we can import our modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -110,7 +114,7 @@ period = period_options[selected_period]
 # Analysis type selection
 analysis_type = st.sidebar.radio(
     "Select Analysis Type",
-    ["Interactive Charts", "Combined Analysis", "Market Heatmap", "Multi-Stock Dashboard"]
+    ["Interactive Charts", "Combined Analysis", "Market Heatmap", "Multi-Stock Dashboard", "AI Assistant"]
 )
 
 # Technical indicators selection
@@ -498,6 +502,58 @@ elif analysis_type == "Combined Analysis":
     
     except Exception as e:
         st.error(f"Error generating combined analysis: {str(e)}")
+
+elif analysis_type == "AI Assistant":
+    st.markdown('<h2 class="sub-header">Finance Analyst AI Assistant</h2>', unsafe_allow_html=True)
+    
+    # Initialize session state for chat history if it doesn't exist
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+    
+    if 'agent' not in st.session_state:
+        with st.spinner("Initializing AI Agent..."):
+            try:
+                st.session_state.agent = FinanceAnalystReActAgent()
+                st.success("AI Agent initialized successfully!")
+            except Exception as e:
+                st.error(f"Error initializing AI Agent: {str(e)}")
+                st.stop()
+    
+    # Display chat history
+    for i, (query, response) in enumerate(st.session_state.chat_history):
+        with st.chat_message("user"):
+            st.write(query)
+        with st.chat_message("assistant", avatar="📊"):
+            st.write(response)
+    
+    # User input
+    user_query = st.chat_input("Ask a financial question...")
+    
+    if user_query:
+        # Add user message to chat history display
+        with st.chat_message("user"):
+            st.write(user_query)
+        
+        # Process the query with the AI agent
+        with st.chat_message("assistant", avatar="📊"):
+            with st.spinner("Analyzing your query..."):
+                try:
+                    start_time = time.time()
+                    response = st.session_state.agent.process_query(user_query)
+                    end_time = time.time()
+                    
+                    st.write(response)
+                    st.caption(f"Query processed in {end_time - start_time:.2f} seconds")
+                    
+                    # Add to chat history
+                    st.session_state.chat_history.append((user_query, response))
+                except Exception as e:
+                    st.error(f"Error processing query: {str(e)}")
+    
+    # Add a button to clear chat history
+    if st.button("Clear Chat History") and st.session_state.chat_history:
+        st.session_state.chat_history = []
+        st.experimental_rerun()
 
 elif analysis_type == "Market Heatmap":
     st.markdown('<h2 class="sub-header">Market Performance Heatmap</h2>', unsafe_allow_html=True)

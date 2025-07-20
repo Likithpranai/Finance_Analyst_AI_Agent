@@ -1,20 +1,3 @@
-#!/usr/bin/env python3
-"""
-Finance Analyst AI Agent - Unified Entry Point
-
-This script provides a unified interface to the Finance Analyst AI Agent,
-combining all functionality including:
-- ReAct-based AI analysis
-- Interactive visualization
-- Real-time data processing
-- Technical and fundamental analysis
-- Portfolio management
-- Dashboard capabilities
-
-Usage:
-    python3 finance_agent.py [--dashboard] [--query "your query here"]
-"""
-
 import os
 import sys
 import time

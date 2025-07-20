@@ -13,6 +13,105 @@ class FundamentalAnalysisTools:
     """Tools for fundamental analysis of stocks"""
     
     @staticmethod
+    def get_income_statement_summary(symbol: str) -> Dict:
+        """
+        Get summary of income statement data for a stock
+        
+        Args:
+            symbol: Stock ticker symbol
+            
+        Returns:
+            Dictionary with income statement summary
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            income_stmt = ticker.income_stmt
+            
+            if income_stmt.empty:
+                return {"error": f"Could not retrieve income statement for {symbol}"}
+            
+            # Get the last 4 periods
+            income_stmt = income_stmt.iloc[:, :4]
+            
+            # Extract key metrics
+            total_revenue = income_stmt.loc['Total Revenue'].to_dict() if 'Total Revenue' in income_stmt.index else {}
+            gross_profit = income_stmt.loc['Gross Profit'].to_dict() if 'Gross Profit' in income_stmt.index else {}
+            operating_income = income_stmt.loc['Operating Income'].to_dict() if 'Operating Income' in income_stmt.index else {}
+            net_income = income_stmt.loc['Net Income'].to_dict() if 'Net Income' in income_stmt.index else {}
+            
+            # Calculate year-over-year growth rates if we have at least 2 periods
+            revenue_growth = {}
+            income_growth = {}
+            if len(total_revenue) >= 2:
+                dates = sorted(total_revenue.keys())
+                for i in range(1, len(dates)):
+                    current_date = dates[i]
+                    prev_date = dates[i-1]
+                    if total_revenue[prev_date] != 0:
+                        revenue_growth[current_date] = (total_revenue[current_date] - total_revenue[prev_date]) / total_revenue[prev_date]
+                    if net_income[prev_date] != 0:
+                        income_growth[current_date] = (net_income[current_date] - net_income[prev_date]) / net_income[prev_date]
+            
+            # Format the results
+            result = {
+                "symbol": symbol,
+                "total_revenue": {str(k).split(' ')[0]: v for k, v in total_revenue.items()},
+                "gross_profit": {str(k).split(' ')[0]: v for k, v in gross_profit.items()},
+                "operating_income": {str(k).split(' ')[0]: v for k, v in operating_income.items()},
+                "net_income": {str(k).split(' ')[0]: v for k, v in net_income.items()},
+                "revenue_growth": {str(k).split(' ')[0]: v for k, v in revenue_growth.items()},
+                "income_growth": {str(k).split(' ')[0]: v for k, v in income_growth.items()}
+            }
+            
+            return result
+        
+        except Exception as e:
+            return {"error": f"Error retrieving income statement for {symbol}: {str(e)}"}
+    
+    @staticmethod
+    def get_balance_sheet_summary(symbol: str) -> Dict:
+        """
+        Get summary of balance sheet data for a stock
+        
+        Args:
+            symbol: Stock ticker symbol
+            
+        Returns:
+            Dictionary with balance sheet summary
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            balance_sheet = ticker.balance_sheet
+            
+            if balance_sheet.empty:
+                return {"error": f"Could not retrieve balance sheet for {symbol}"}
+            
+            # Get the last 4 periods
+            balance_sheet = balance_sheet.iloc[:, :4]
+            
+            # Extract key metrics
+            total_assets = balance_sheet.loc['Total Assets'].to_dict() if 'Total Assets' in balance_sheet.index else {}
+            total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest'].to_dict() if 'Total Liabilities Net Minority Interest' in balance_sheet.index else {}
+            total_equity = balance_sheet.loc['Total Equity Gross Minority Interest'].to_dict() if 'Total Equity Gross Minority Interest' in balance_sheet.index else {}
+            cash = balance_sheet.loc['Cash And Cash Equivalents'].to_dict() if 'Cash And Cash Equivalents' in balance_sheet.index else {}
+            total_debt = balance_sheet.loc['Total Debt'].to_dict() if 'Total Debt' in balance_sheet.index else {}
+            
+            # Format the results
+            result = {
+                "symbol": symbol,
+                "total_assets": {str(k).split(' ')[0]: v for k, v in total_assets.items()},
+                "total_liabilities": {str(k).split(' ')[0]: v for k, v in total_liabilities.items()},
+                "total_equity": {str(k).split(' ')[0]: v for k, v in total_equity.items()},
+                "cash": {str(k).split(' ')[0]: v for k, v in cash.items()},
+                "total_debt": {str(k).split(' ')[0]: v for k, v in total_debt.items()}
+            }
+            
+            return result
+        
+        except Exception as e:
+            return {"error": f"Error retrieving balance sheet for {symbol}: {str(e)}"}
+    
+    @staticmethod
     def get_financial_ratios(symbol: str) -> Dict:
         """
         Get key financial ratios for a stock

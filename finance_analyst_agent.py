@@ -17,15 +17,19 @@ from typing import Dict, List, Any, Tuple, Optional, Union
 
 # Import existing tools
 from tools.alpha_vantage_tools import AlphaVantageTools
-from tools.predictive_analytics import PredictiveAnalyticsTools
+from tools.technical_analysis import TechnicalAnalysisTools
 from tools.fundamental_analysis import FundamentalAnalysisTools
-from tools.enhanced_visualization import EnhancedVisualizationTools
+from tools.alpha_vantage_tools import AlphaVantageTools
+from tools.real_time_data_integration import RealTimeDataTools
 from tools.combined_analysis import CombinedAnalysisTools
 from tools.portfolio_management import PortfolioManagementTools
+from tools.predictive_analytics import PredictiveAnalyticsTools
+from tools.polygon_integration import PolygonIntegrationTools
+from tools.news_retrieval import NewsRetrievalTools
+from tools.portfolio_integration import PortfolioIntegrationTools
+from tools.enhanced_visualization import EnhancedVisualizationTools
 from tools.backtesting import BacktestingTools
 from tools.backtesting_visualization import BacktestVisualizationTools
-from tools.portfolio_integration import PortfolioIntegrationTools
-from tools.technical_analysis import TechnicalAnalysisTools
 
 # Import new professional-grade tools
 from tools.polygon_integration import PolygonIntegrationTools
@@ -526,7 +530,7 @@ class FinanceAnalystReActAgent:
             "get_crypto_data": RealTimeDataTools.get_crypto_data,
             "get_forex_data": RealTimeDataTools.get_forex_data,
             "get_company_details": RealTimeDataTools.get_company_details,
-            "get_market_news": RealTimeDataTools.get_market_news,
+            "get_market_news": NewsRetrievalTools.get_market_news,
             "start_real_time_stream": RealTimeDataTools.start_real_time_stream,
             "stop_real_time_stream": RealTimeDataTools.stop_real_time_stream,
             "get_active_streams": RealTimeDataTools.get_active_streams,
@@ -553,12 +557,14 @@ class FinanceAnalystReActAgent:
             "calculate_adline": StockTools.calculate_adline,
             "calculate_adx": StockTools.calculate_adx,
             
-            # Fundamental Analysis tools
+            # Fundamental Analysis Tools
             "get_financial_ratios": FundamentalAnalysisTools.get_financial_ratios,
             "get_income_statement": FundamentalAnalysisTools.get_income_statement,
             "get_balance_sheet": FundamentalAnalysisTools.get_balance_sheet,
             "get_cash_flow": FundamentalAnalysisTools.get_cash_flow,
-            "format_financial_ratios": FundamentalAnalysisTools.format_financial_ratios_for_display,
+            "get_income_statement_summary": FundamentalAnalysisTools.get_income_statement_summary,
+            "get_balance_sheet_summary": FundamentalAnalysisTools.get_balance_sheet_summary,
+            "format_financial_ratios_for_display": FundamentalAnalysisTools.format_financial_ratios_for_display,
             "get_industry_comparison": FundamentalAnalysisTools.get_industry_comparison,
             
             # Enhanced Visualization tools
@@ -890,6 +896,13 @@ class FinanceAnalystReActAgent:
         if asset_type == "stock" and any(term in query for term in ["info", "information", "about", "company", "details", "fundamentals", "profile", "executives", "market cap", "sector"]):
             # Use the new professional-grade company details tool
             tools_needed.append("get_company_details")
+            
+        # Check for fundamental analysis needs
+        if asset_type == "stock" and any(term in query for term in ["fundamental", "financials", "ratios", "pe", "eps", "revenue", "earnings", "profit", "margin", "debt", "equity", "book value", "roe", "roa", "comprehensive"]):
+            # Add fundamental analysis tools
+            tools_needed.append("get_financial_ratios")
+            tools_needed.append("get_income_statement_summary")
+            tools_needed.append("get_balance_sheet_summary")
         
         # Check for news needs with professional-grade sources
         if asset_type == "stock" and any(term in query for term in ["news", "headlines", "articles", "press", "announcement", "media", "release"]):
@@ -906,7 +919,8 @@ class FinanceAnalystReActAgent:
                 if needs_real_time:
                     tools_needed = ["get_real_time_quote", "get_company_info"]
                 else:
-                    tools_needed = ["get_stock_price", "get_company_info"]
+                    # For stocks, include comprehensive analysis by default
+                    tools_needed = ["get_stock_price", "get_company_info", "calculate_rsi", "calculate_macd", "get_financial_ratios", "get_market_news"]
             elif asset_type == "crypto":
                 tools_needed = ["get_crypto_data"]
             elif asset_type == "forex":
