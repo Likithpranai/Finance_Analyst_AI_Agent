@@ -172,7 +172,7 @@
 .header {
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-medium);
+  background-color: var(--bg-dark);
   border-bottom: 1px solid var(--border-color);
   box-shadow: var(--shadow-medium);
   z-index: 5;
@@ -184,18 +184,20 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px 25px;
+  background: linear-gradient(to right, var(--bg-dark), var(--bg-medium));
 }
 
 .market-ticker {
   display: flex;
   align-items: center;
-  padding: 6px 25px;
-  background-color: var(--bg-light);
+  padding: 8px 25px;
+  background-color: var(--bg-medium);
   border-top: 1px solid var(--border-color);
   overflow-x: auto;
   white-space: nowrap;
   font-size: 12px;
   color: var(--text-medium);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .ticker-item {
@@ -244,13 +246,13 @@
 }
 
 .title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-bright);
-  margin: 0;
-  letter-spacing: -0.5px;
   display: flex;
   align-items: center;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: -0.5px;
   position: relative;
 }
 
@@ -265,10 +267,10 @@
 }
 
 .title-logo {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   margin-right: 12px;
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -276,7 +278,8 @@
   font-size: 18px;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 2px 6px rgba(8, 66, 152, 0.4);
+  color: white;
 }
 
 .title-logo::after {
@@ -309,18 +312,19 @@
 .header-button {
   margin-left: 12px;
   padding: 8px 14px;
-  background-color: var(--bg-light);
+  background: linear-gradient(to bottom, var(--bg-light), var(--bg-medium));
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   position: relative;
   overflow: hidden;
+  color: var(--text-bright);
 }
 
 .header-button-icon {
@@ -341,21 +345,23 @@
 }
 
 .header-button:hover {
-  background-color: var(--bg-lighter);
+  background: linear-gradient(to bottom, var(--bg-lighter), var(--bg-light));
   transform: translateY(-1px);
-  box-shadow: var(--shadow-medium);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   border-color: var(--primary-color);
 }
 
 .header-button.primary {
-  background-color: var(--primary-color);
-  color: var(--text-bright);
-  border-color: var(--primary-hover);
+  background: linear-gradient(to bottom, var(--primary-color), var(--primary-color-dark));
+  border-color: var(--primary-color-dark);
+  color: white;
+  box-shadow: 0 2px 5px rgba(8, 66, 152, 0.4);
 }
 
 .header-button.primary:hover {
-  background-color: var(--primary-hover);
-  box-shadow: 0 0 0 1px var(--primary-color), var(--shadow-medium);
+  background: linear-gradient(to bottom, #0b62e0, var(--primary-color-dark));
+  transform: translateY(-1px);
+  box-shadow: 0 3px 7px rgba(8, 66, 152, 0.5);
 }
 
 .example-query {
@@ -609,8 +615,10 @@
 }
 
 .time-filter:hover {
-  background-color: var(--bg-lighter);
+  background: linear-gradient(to bottom, var(--bg-lighter), var(--bg-light));
   color: var(--text-bright);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .time-filter.active {
@@ -943,34 +951,36 @@ input::placeholder {
 }
 
 .send-button {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
   border: none;
   color: white;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   padding: 10px;
-  transition: all 0.3s ease;
-  border-radius: 12px;
-  width: 40px;
-  height: 40px;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-left: 10px;
+  box-shadow: 0 2px 5px rgba(8, 66, 152, 0.3);
 }
 
 .send-button:hover {
-  transform: scale(1.05) translateY(-2px);
-  background-color: var(--primary-hover);
-  box-shadow: var(--shadow-soft);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #0b62e0, var(--primary-color-dark));
+  box-shadow: 0 3px 7px rgba(8, 66, 152, 0.5);
 }
 
 .send-button:disabled {
-  background-color: var(--bg-light);
+  background: linear-gradient(135deg, var(--bg-light), var(--bg-medium));
   color: var(--text-dim);
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  opacity: 0.7;
 }
 
 /* Financial data highlighting */
@@ -1126,16 +1136,18 @@ input::placeholder {
   box-shadow: var(--shadow-small);
 }
 
-.example-query .query-icon {
+.example-query .title-logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background-color: rgba(10, 88, 202, 0.1);
-  margin-right: 10px;
-  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
+  margin-right: 12px;
+  color: white;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(8, 66, 152, 0.4);
 }
 
 .query-suggestions {
