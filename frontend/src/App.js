@@ -70,6 +70,11 @@ function App() {
     { id: 1, text: 'Welcome to the Finance Analyst AI Agent. How can I help you with financial analysis today?', sender: 'agent' }
   ]);
   
+  // State for sidebar navigation
+  const [activeView, setActiveView] = useState('chat');
+  const [likedMessages, setLikedMessages] = useState(new Set());
+  const [dislikedMessages, setDislikedMessages] = useState(new Set());
+  
   // Example queries to help users get started
   const exampleQueries = [
     // Technical Analysis
@@ -161,22 +166,371 @@ function App() {
     setTimeout(() => handleSend(), 100);
   };
 
+  // Sidebar navigation handlers
+  const handleSidebarClick = (view) => {
+    setActiveView(view);
+  };
+
+  // Message action handlers
+  const handleLike = (messageId) => {
+    setLikedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+        // Remove from disliked if it was disliked
+        setDislikedMessages(prevDisliked => {
+          const newDislikedSet = new Set(prevDisliked);
+          newDislikedSet.delete(messageId);
+          return newDislikedSet;
+        });
+      }
+      return newSet;
+    });
+  };
+
+  const handleDislike = (messageId) => {
+    setDislikedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+        // Remove from liked if it was liked
+        setLikedMessages(prevLiked => {
+          const newLikedSet = new Set(prevLiked);
+          newLikedSet.delete(messageId);
+          return newLikedSet;
+        });
+      }
+      return newSet;
+    });
+  };
+
+  const handleRegenerate = async (messageId) => {
+    // Find the user message that preceded this agent message
+    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (messageIndex > 0) {
+      const userMessage = messages[messageIndex - 1];
+      if (userMessage.sender === 'user') {
+        // Remove the current agent response
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+        
+        // Regenerate response
+        setIsLoading(true);
+        try {
+          const response = await fetch('/api/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: userMessage.text })
+          });
+          
+          const data = await response.json();
+          
+          if (data.error) {
+            setMessages(prev => [...prev, { 
+              id: Date.now(), 
+              text: `Error: ${data.error}`, 
+              sender: 'agent',
+              error: true
+            }]);
+          } else {
+            const visualizations = data.visualizations || [];
+            
+            setMessages(prev => [...prev, { 
+              id: Date.now(), 
+              text: data.response, 
+              sender: 'agent',
+              processingTime: data.processingTime,
+              visualizations: visualizations
+            }]);
+          }
+        } catch (error) {
+          setMessages(prev => [...prev, { 
+            id: Date.now(), 
+            text: `Network error: ${error.message}`, 
+            sender: 'agent',
+            error: true
+          }]);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }
+  };
+
+  const handleCopy = (messageText) => {
+    // Remove HTML tags for clean text copying
+    const cleanText = messageText.replace(/<[^>]*>/g, '');
+    navigator.clipboard.writeText(cleanText).then(() => {
+      // You could add a toast notification here
+      console.log('Message copied to clipboard');
+    }).catch(err => {
+      console.error('Failed to copy message:', err);
+    });
+  };
+
+  const handleMoreOptions = (messageId) => {
+    // This could open a dropdown menu with additional options
+    // For now, we'll just log it
+    console.log('More options for message:', messageId);
+    // You could implement features like:
+    // - Export message
+    // - Share message
+    // - Report issue
+    // - Save to favorites
+  };
+
+  // Render different views based on activeView
+  const renderMainContent = () => {
+    switch (activeView) {
+      case 'dashboard':
+        return (
+          <div className="dashboard-view">
+            <h2>Market Dashboard</h2>
+            <p>Real-time market data and analytics dashboard coming soon...</p>
+            <div className="dashboard-placeholder">
+              <i className="fas fa-chart-bar" style={{fontSize: '4rem', color: '#666'}}></i>
+              <p>Interactive charts and market overview will be displayed here.</p>
+            </div>
+          </div>
+        );
+      case 'technical':
+        return (
+          <div className="technical-view">
+            <h2>Technical Analysis Tools</h2>
+            <p>Advanced technical analysis and charting tools coming soon...</p>
+            <div className="technical-placeholder">
+              <i className="fas fa-chart-line" style={{fontSize: '4rem', color: '#666'}}></i>
+              <p>TradingView-like charts and technical indicators will be available here.</p>
+            </div>
+          </div>
+        );
+      case 'portfolio':
+        return (
+          <div className="portfolio-view">
+            <h2>Portfolio Management</h2>
+            <p>Portfolio tracking and optimization tools coming soon...</p>
+            <div className="portfolio-placeholder">
+              <i className="fas fa-chart-area" style={{fontSize: '4rem', color: '#666'}}></i>
+              <p>Portfolio performance tracking and optimization tools will be displayed here.</p>
+            </div>
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="settings-view">
+            <h2>Settings</h2>
+            <div className="settings-content">
+              <div className="setting-group">
+                <h3>API Configuration</h3>
+                <p>Configure your API keys and data sources</p>
+              </div>
+              <div className="setting-group">
+                <h3>Display Preferences</h3>
+                <p>Customize the interface and chart settings</p>
+              </div>
+              <div className="setting-group">
+                <h3>Notifications</h3>
+                <p>Set up alerts and notification preferences</p>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return renderChatView();
+    }
+  };
+
+  const renderChatView = () => {
+    return (
+      <>
+        {messages.length === 1 && (
+          <div className="welcome">
+            <h2>Welcome to Finance Analyst</h2>
+            <p className="welcome-subtitle">Professional-grade financial analysis and market intelligence</p>
+            
+            <div className="query-categories">
+              <div className="query-category">
+                <div className="category-header">
+                  <i className="fas fa-chart-line"></i>
+                  <h3>Technical Analysis</h3>
+                </div>
+                <div className="example-queries">
+                  <div className="example-query" onClick={() => handleExampleQuery("Analyze AAPL with RSI, MACD, and Bollinger Bands. Is it a good time to buy?")}>
+                    <i className="fas fa-chart-area query-icon"></i>
+                    Analyze AAPL with RSI, MACD, and Bollinger Bands
+                  </div>
+                  <div className="example-query" onClick={() => handleExampleQuery("Calculate support and resistance levels for TSLA based on the last 3 months")}>
+                    <i className="fas fa-arrows-alt-v query-icon"></i>
+                    Calculate support and resistance levels for TSLA
+                  </div>
+                </div>
+              </div>
+              
+              <div className="query-category">
+                <div className="category-header">
+                  <i className="fas fa-balance-scale"></i>
+                  <h3>Fundamental Analysis</h3>
+                </div>
+                <div className="example-queries">
+                  <div className="example-query" onClick={() => handleExampleQuery("Compare P/E, P/B, and profit margins for MSFT, AAPL, and GOOGL")}>
+                    <i className="fas fa-table query-icon"></i>
+                    Compare P/E, P/B, and profit margins for tech giants
+                  </div>
+                  <div className="example-query" onClick={() => handleExampleQuery("Analyze NVDA's latest income statement and balance sheet. Is it financially healthy?")}>
+                    <i className="fas fa-file-invoice-dollar query-icon"></i>
+                    Analyze NVDA's financial statements
+                  </div>
+                </div>
+              </div>
+              
+              <div className="query-category">
+                <div className="category-header">
+                  <i className="fas fa-chart-pie"></i>
+                  <h3>Portfolio Analysis</h3>
+                </div>
+                <div className="example-queries">
+                  <div className="example-query" onClick={() => handleExampleQuery("Optimize a portfolio with AAPL, MSFT, AMZN, and BRK.B for maximum Sharpe ratio")}>
+                    <i className="fas fa-sliders-h query-icon"></i>
+                    Optimize portfolio for maximum Sharpe ratio
+                  </div>
+                  <div className="example-query" onClick={() => handleExampleQuery("What would be the 5-year return of a portfolio with 40% VOO, 30% QQQ, 20% VGT, and 10% BND?")}>
+                    <i className="fas fa-calculator query-icon"></i>
+                    Calculate 5-year ETF portfolio return
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {messages.map(msg => (
+          <div key={msg.id} className={`message ${msg.sender}`}>
+            <div className="message-content">
+              {msg.sender === 'agent' && <div className="agent-icon"><i className="fas fa-chart-line"></i></div>}
+              <div className="message-text">
+                {msg.sender === 'agent' ? (
+                  <>
+                    <div dangerouslySetInnerHTML={{ __html: formatResponse(msg.text) }} />
+                    {msg.visualizations && msg.visualizations.length > 0 && (
+                      <div className="visualizations">
+                        {msg.visualizations.map((viz, index) => (
+                          <div key={index} className="visualization-container">
+                            <img 
+                              src={viz} 
+                              alt="Financial Visualization" 
+                              className="visualization-image" 
+                              onClick={() => window.open(viz, '_blank')}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  msg.text
+                )}
+              </div>
+            </div>
+            {msg.sender === 'agent' && !msg.error && (
+              <div className="message-footer">
+                <div className="message-actions">
+                  <span 
+                    className={`action-button ${likedMessages.has(msg.id) ? 'active liked' : ''}`} 
+                    title="Like" 
+                    onClick={() => handleLike(msg.id)}
+                  >
+                    <i className="fas fa-thumbs-up"></i>
+                  </span>
+                  <span 
+                    className={`action-button ${dislikedMessages.has(msg.id) ? 'active disliked' : ''}`} 
+                    title="Dislike" 
+                    onClick={() => handleDislike(msg.id)}
+                  >
+                    <i className="fas fa-thumbs-down"></i>
+                  </span>
+                  <span 
+                    className="action-button" 
+                    title="Regenerate" 
+                    onClick={() => handleRegenerate(msg.id)}
+                  >
+                    <i className="fas fa-sync-alt"></i>
+                  </span>
+                  <span 
+                    className="action-button" 
+                    title="Copy to clipboard" 
+                    onClick={() => handleCopy(msg.text)}
+                  >
+                    <i className="fas fa-clipboard"></i>
+                  </span>
+                  <span 
+                    className="action-button" 
+                    title="More options" 
+                    onClick={() => handleMoreOptions(msg.id)}
+                  >
+                    <i className="fas fa-ellipsis-v"></i>
+                  </span>
+                </div>
+                {msg.processingTime && (
+                  <span className="processing-time">{msg.processingTime.toFixed(2)}s</span>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+        {isLoading && (
+          <div className="message agent loading">
+            <div className="message-content">
+              <div className="agent-icon"><i className="fas fa-chart-line"></i></div>
+              <div className="loading-indicator">
+                <div className="dot"></div>
+                <div className="dot"></div>
+                <div className="dot"></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="app">
       <div className="sidebar">
-        <div className="sidebar-icon active">
+        <div 
+          className={`sidebar-icon ${activeView === 'chat' ? 'active' : ''}`}
+          onClick={() => handleSidebarClick('chat')}
+          title="Chat"
+        >
           <i className="fas fa-comments-dollar"></i>
         </div>
-        <div className="sidebar-icon">
+        <div 
+          className={`sidebar-icon ${activeView === 'dashboard' ? 'active' : ''}`}
+          onClick={() => handleSidebarClick('dashboard')}
+          title="Market Dashboard"
+        >
           <i className="fas fa-chart-bar"></i>
         </div>
-        <div className="sidebar-icon">
+        <div 
+          className={`sidebar-icon ${activeView === 'technical' ? 'active' : ''}`}
+          onClick={() => handleSidebarClick('technical')}
+          title="Technical Analysis"
+        >
           <i className="fas fa-chart-line"></i>
         </div>
-        <div className="sidebar-icon">
+        <div 
+          className={`sidebar-icon ${activeView === 'portfolio' ? 'active' : ''}`}
+          onClick={() => handleSidebarClick('portfolio')}
+          title="Portfolio Management"
+        >
           <i className="fas fa-chart-area"></i>
         </div>
-        <div className="sidebar-icon">
+        <div 
+          className={`sidebar-icon ${activeView === 'settings' ? 'active' : ''}`}
+          onClick={() => handleSidebarClick('settings')}
+          title="Settings"
+        >
           <i className="fas fa-cog"></i>
         </div>
       </div>
@@ -193,139 +547,25 @@ function App() {
           </div>
         </header>
         <div className="chat" ref={chatContainerRef}>
-          {messages.length === 1 && (
-            <div className="welcome">
-              <h2>Welcome to Finance Analyst</h2>
-              <p className="welcome-subtitle">Professional-grade financial analysis and market intelligence</p>
-              
-
-              
-              <div className="query-categories">
-                <div className="query-category">
-                  <div className="category-header">
-                    <i className="fas fa-chart-line"></i>
-                    <h3>Technical Analysis</h3>
-                  </div>
-                  <div className="example-queries">
-                    <div className="example-query" onClick={() => handleExampleQuery("Analyze AAPL with RSI, MACD, and Bollinger Bands. Is it a good time to buy?")}>
-                      <i className="fas fa-chart-area query-icon"></i>
-                      Analyze AAPL with RSI, MACD, and Bollinger Bands
-                    </div>
-                    <div className="example-query" onClick={() => handleExampleQuery("Calculate support and resistance levels for TSLA based on the last 3 months")}>
-                      <i className="fas fa-arrows-alt-v query-icon"></i>
-                      Calculate support and resistance levels for TSLA
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="query-category">
-                  <div className="category-header">
-                    <i className="fas fa-balance-scale"></i>
-                    <h3>Fundamental Analysis</h3>
-                  </div>
-                  <div className="example-queries">
-                    <div className="example-query" onClick={() => handleExampleQuery("Compare P/E, P/B, and profit margins for MSFT, AAPL, and GOOGL")}>
-                      <i className="fas fa-table query-icon"></i>
-                      Compare P/E, P/B, and profit margins for tech giants
-                    </div>
-                    <div className="example-query" onClick={() => handleExampleQuery("Analyze NVDA's latest income statement and balance sheet. Is it financially healthy?")}>
-                      <i className="fas fa-file-invoice-dollar query-icon"></i>
-                      Analyze NVDA's financial statements
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="query-category">
-                  <div className="category-header">
-                    <i className="fas fa-chart-pie"></i>
-                    <h3>Portfolio Analysis</h3>
-                  </div>
-                  <div className="example-queries">
-                    <div className="example-query" onClick={() => handleExampleQuery("Optimize a portfolio with AAPL, MSFT, AMZN, and BRK.B for maximum Sharpe ratio")}>
-                      <i className="fas fa-sliders-h query-icon"></i>
-                      Optimize portfolio for maximum Sharpe ratio
-                    </div>
-                    <div className="example-query" onClick={() => handleExampleQuery("What would be the 5-year return of a portfolio with 40% VOO, 30% QQQ, 20% VGT, and 10% BND?")}>
-                      <i className="fas fa-calculator query-icon"></i>
-                      Calculate 5-year ETF portfolio return
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          {messages.map(msg => (
-            <div key={msg.id} className={`message ${msg.sender}`}>
-              <div className="message-content">
-                {msg.sender === 'agent' && <div className="agent-icon"><i className="fas fa-chart-line"></i></div>}
-                <div className="message-text">
-                  {msg.sender === 'agent' ? (
-                    <>
-                      <div dangerouslySetInnerHTML={{ __html: formatResponse(msg.text) }} />
-                      {msg.visualizations && msg.visualizations.length > 0 && (
-                        <div className="visualizations">
-                          {msg.visualizations.map((viz, index) => (
-                            <div key={index} className="visualization-container">
-                              <img 
-                                src={viz} 
-                                alt="Financial Visualization" 
-                                className="visualization-image" 
-                                onClick={() => window.open(viz, '_blank')}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    msg.text
-                  )}
-                </div>
-              </div>
-              {msg.sender === 'agent' && !msg.error && (
-                <div className="message-footer">
-                  <div className="message-actions">
-                    <span className="action-button" title="Like"><i className="fas fa-thumbs-up"></i></span>
-                    <span className="action-button" title="Dislike"><i className="fas fa-thumbs-down"></i></span>
-                    <span className="action-button" title="Regenerate"><i className="fas fa-sync-alt"></i></span>
-                    <span className="action-button" title="Copy to clipboard"><i className="fas fa-clipboard"></i></span>
-                    <span className="action-button" title="More options"><i className="fas fa-ellipsis-v"></i></span>
-                  </div>
-                  {msg.processingTime && (
-                    <span className="processing-time">{msg.processingTime.toFixed(2)}s</span>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-          {isLoading && (
-            <div className="message agent loading">
-              <div className="message-content">
-                <div className="agent-icon"><i className="fas fa-chart-line"></i></div>
-                <div className="loading-indicator">
-                  <div className="dot"></div>
-                  <div className="dot"></div>
-                  <div className="dot"></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={chatEndRef} />
+          {renderMainContent()}
+          {activeView === 'chat' && <div ref={chatEndRef} />}
         </div>
-        <div className="input-bar">
-          <div className="input-container">
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Analyze stocks, financial metrics, market trends, investment strategies..."
-              onKeyPress={e => e.key === 'Enter' && handleSend()}
-            />
-            <button className="send-button" onClick={handleSend} disabled={isLoading || !input.trim()}>
-              {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
-            </button>
+        {activeView === 'chat' && (
+          <div className="input-bar">
+            <div className="input-container">
+              <input
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Analyze stocks, financial metrics, market trends, investment strategies..."
+                onKeyPress={e => e.key === 'Enter' && handleSend()}
+              />
+              <button className="send-button" onClick={handleSend} disabled={isLoading || !input.trim()}>
+                {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

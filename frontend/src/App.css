@@ -1117,8 +1117,278 @@ input::placeholder {
   color: var(--primary-color);
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+/* Enhanced Button Functionality Styles */
+.sidebar-icon {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(10, 88, 202, 0.3);
+}
+
+.sidebar-icon.active {
+  background: var(--gradient-primary);
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(10, 88, 202, 0.4);
+}
+
+/* Message Action Button Enhancements */
+.action-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.action-button:hover::before {
+  left: 100%;
+}
+
+.action-button.active {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.action-button.liked {
+  color: var(--positive-color);
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.action-button.disliked {
+  color: var(--negative-color);
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* New View Layouts */
+.dashboard-view,
+.technical-view,
+.portfolio-view,
+.settings-view {
+  padding: 40px;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--gradient-dark);
+  border-radius: 12px;
+  margin: 20px;
+  box-shadow: var(--shadow-large);
+}
+
+.dashboard-view h2,
+.technical-view h2,
+.portfolio-view h2,
+.settings-view h2 {
+  color: var(--text-bright);
+  font-size: 2.5rem;
   font-weight: 600;
-  margin: 0 2px;
+  margin-bottom: 16px;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+}
+
+.dashboard-placeholder,
+.technical-placeholder,
+.portfolio-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  background: var(--bg-medium);
+  border-radius: 12px;
+  border: 2px dashed var(--border-color);
+  margin-top: 40px;
+  transition: all 0.3s ease;
+}
+
+.dashboard-placeholder:hover,
+.technical-placeholder:hover,
+.portfolio-placeholder:hover {
+  border-color: var(--primary-color);
+  background: rgba(10, 88, 202, 0.05);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-medium);
+}
+
+.dashboard-placeholder p,
+.technical-placeholder p,
+.portfolio-placeholder p {
+  color: var(--text-medium);
+  font-size: 1.1rem;
+  margin-top: 16px;
+  text-align: center;
+  max-width: 400px;
+}
+
+/* Settings View Specific Styles */
+.settings-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.setting-group {
+  background: var(--bg-medium);
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.setting-group:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-medium);
+  transform: translateY(-2px);
+}
+
+.setting-group h3 {
+  color: var(--primary-color);
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.setting-group h3::before {
+  content: '⚙️';
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+
+.setting-group p {
+  color: var(--text-medium);
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Enhanced Hover Effects for Interactive Elements */
+.example-query {
+  position: relative;
+  overflow: hidden;
+}
+
+.example-query::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(10, 88, 202, 0.1), transparent);
+  transition: left 0.6s;
+}
+
+.example-query:hover::after {
+  left: 100%;
+}
+
+/* Improved Button Feedback */
+.send-button:active {
+  transform: scale(0.95);
+}
+
+.sidebar-icon:active {
+  transform: scale(0.95);
+}
+
+.action-button:active {
+  transform: scale(0.9);
+}
+
+/* Loading State Enhancements */
+.loading-indicator {
+  position: relative;
+}
+
+.loading-indicator::before {
+  content: 'Analyzing...';
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-medium);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Responsive Design Improvements */
+@media (max-width: 768px) {
+  .dashboard-view,
+  .technical-view,
+  .portfolio-view,
+  .settings-view {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .dashboard-view h2,
+  .technical-view h2,
+  .portfolio-view h2,
+  .settings-view h2 {
+    font-size: 2rem;
+  }
+  
+  .dashboard-placeholder,
+  .technical-placeholder,
+  .portfolio-placeholder {
+    height: 300px;
+  }
+}
+
+/* Accessibility Improvements */
+.sidebar-icon:focus,
+.action-button:focus,
+.example-query:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Animation for View Transitions */
+.dashboard-view,
+.technical-view,
+.portfolio-view,
+.settings-view {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Enhanced Visual Feedback */
+.action-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-icon[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-dark);
+  color: var(--text-bright);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: var(--shadow-medium);
+  border: 1px solid var(--border-color);
 }
 
 /* Financial analysis formatting */
