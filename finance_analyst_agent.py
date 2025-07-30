@@ -597,7 +597,8 @@ class FinanceAnalystReActAgent:
         }
         
         self.system_prompt = """
-        You are a Finance Analyst AI that helps users analyze stocks and provide financial insights.
+        You are a Senior Financial Analyst with extensive experience in equity research, technical analysis, and portfolio management.
+        You provide institutional-grade financial analysis and investment recommendations following rigorous analytical frameworks.
         You follow the ReAct pattern: Reason → Act → Observe → Loop.
         
         You have access to the following tools:
@@ -705,368 +706,415 @@ class FinanceAnalystReActAgent:
         - For backtesting trading strategies, use backtest_strategy (41)
         - For paper trading simulation, use run_paper_trading (42)
         
-        Always format your response in a clear, professional manner with sections for:
-        - Summary: A brief overview of the findings
-        - Analysis: Detailed explanation of the data
-        - Recommendation: Suggested actions or insights based on the data
+        RESPONSE FORMATTING REQUIREMENTS:
+        You must structure ALL responses using the following professional format:
         
-        DO NOT make up information. Only use the data provided by the tools.
+        ## EXECUTIVE SUMMARY
+        • Key findings and investment thesis in 2-3 bullet points
+        • Current price and price target (if applicable)
+        • Overall recommendation (Strong Buy/Buy/Hold/Sell/Strong Sell)
+        
+        ## TECHNICAL ANALYSIS
+        • Price action and trend analysis
+        • Key technical indicators (RSI, MACD, moving averages)
+        • Support and resistance levels
+        • Volume analysis and momentum indicators
+        
+        ## FUNDAMENTAL ANALYSIS
+        • Financial metrics and ratios (P/E, P/B, ROE, etc.)
+        • Revenue and earnings trends
+        • Balance sheet strength and debt levels
+        • Industry comparison and competitive positioning
+        
+        ## MARKET CONTEXT
+        • Recent news and market developments
+        • Sector performance and economic factors
+        • Risk factors and catalysts
+        
+        ## INVESTMENT RECOMMENDATION
+        • Clear buy/sell/hold recommendation with rationale
+        • Price targets and time horizon
+        • Risk assessment and position sizing guidance
+        • Key metrics to monitor going forward
+        
+        PROFESSIONAL STANDARDS:
+        • Use precise financial terminology and industry-standard metrics
+        • Provide quantitative analysis with specific numbers and percentages
+        • Include confidence levels and risk assessments
+        • Maintain objectivity and avoid emotional language
+        • Always cite data sources and time periods
+        • DO NOT make up information - only use data provided by tools
         """
     
-    def extract_stock_symbol(self, query):
-        """Extract stock symbol from user query"""
-        # Detect asset type
-        asset_type = self._detect_asset_type(query)
-        query_lower = query.lower()
-        
-        # Handle crypto symbols (BTC, ETH, etc.)
-        if asset_type == "crypto":
-            crypto_pattern = r'\b(BTC|ETH|XRP|LTC|BCH|ADA|DOT|LINK|XLM|DOGE|SOL|USDT|BNB)\b'
-            crypto_matches = re.findall(crypto_pattern, query.upper())
-            if crypto_matches:
-                return crypto_matches[0]
-                
-            # Check for written out crypto names
-            crypto_names = {
-                "bitcoin": "BTC",
-                "ethereum": "ETH",
-                "ripple": "XRP",
-                "litecoin": "LTC",
-                "cardano": "ADA",
-                "polkadot": "DOT",
-                "chainlink": "LINK",
-                "stellar": "XLM",
-                "dogecoin": "DOGE",
-                "solana": "SOL",
-                "tether": "USDT",
-                "binance": "BNB"
-            }
-            
-            for name, symbol in crypto_names.items():
-                if name in query_lower:
-                    return symbol
-            
-            # Default crypto
-            return "BTC"
-        
-        # Handle forex pairs (EUR/USD, etc.)
-        elif asset_type == "forex":
-            # Try to find currency pairs
-            forex_pattern = r'\b([A-Z]{3})/([A-Z]{3})\b'
-            forex_matches = re.findall(forex_pattern, query.upper())
-            if forex_matches:
-                return forex_matches[0]  # Returns tuple (from_currency, to_currency)
-                
-            # Check for common currency names
-            currency_dict = {
-                "dollar": "USD",
-                "euro": "EUR",
-                "pound": "GBP",
-                "yen": "JPY",
-                "yuan": "CNY",
-                "franc": "CHF",
-                "canadian": "CAD",
-                "aussie": "AUD",
-                "australian": "AUD",
-                "kiwi": "NZD",
-                "rupee": "INR"
-            }
-            
-            found_currencies = []
-            for name, code in currency_dict.items():
-                if name in query_lower:
-                    found_currencies.append(code)
-            
-            if len(found_currencies) >= 2:
-                return (found_currencies[0], found_currencies[1])  # Return as tuple
-            
-            # Default forex pair
-            return ("EUR", "USD")
-        
-        # Handle stocks (default)
-        else:
-            # Try to find stock symbols using regex pattern for uppercase 1-5 letter words
-            pattern = r'\b([A-Z]{1,5})\b'
-            matches = re.findall(pattern, query)
-            
-            # Filter out common non-ticker uppercase words
-            common_words = ['I', 'A', 'THE', 'FOR', 'AND', 'OR', 'RSI', 'MACD', 'EMA', 'SMA', 'GDP', 'CPI', 'USD', 'EUR', 'OBV', 'ADX', 'AD']
-            ticker_candidates = [word for word in matches if word not in common_words]
-            
-            if ticker_candidates:
-                return ticker_candidates[0]
-            
-            # Check for company names
-            company_names = {
-                "apple": "AAPL",
-                "microsoft": "MSFT",
-                "amazon": "AMZN",
-                "google": "GOOGL",
-                "alphabet": "GOOGL",
-                "facebook": "META",
-                "meta": "META",
-                "tesla": "TSLA",
-                "nvidia": "NVDA",
-                "netflix": "NFLX"
-            }
-            
-            for name, symbol in company_names.items():
-                if name in query_lower:
-                    return symbol
-            
-            # Default to AAPL if no symbol found
-            return "AAPL"
-
     def determine_tools_needed(self, query):
-        """Determine which financial tools are needed based on the query"""
-        query = query.lower()
+        """Determine which tools are needed based on the query"""
+        query_lower = query.lower()
         tools_needed = []
         
-        # Detect asset type and whether real-time data is needed
-        asset_type = self._detect_asset_type(query)
-        needs_real_time = self._needs_real_time_data(query)
-        
-        # Check for portfolio management needs
-        if any(term in query for term in ["portfolio", "allocation", "risk metrics", "sharpe", "var", "efficient frontier", "optimize"]):
+        # Portfolio integration tools (these handle the full query)
+        if "portfolio" in query_lower or "holdings" in query_lower:
             tools_needed.append("analyze_portfolio")
             return tools_needed
-        
-        # Check for backtesting needs
-        if any(term in query for term in ["backtest", "strategy", "sma crossover", "rsi strategy", "macd strategy"]):
+            
+        if "backtest" in query_lower or "strategy" in query_lower:
             tools_needed.append("backtest_strategy")
             return tools_needed
-        
-        # Check for paper trading simulation needs
-        if any(term in query for term in ["paper trading", "simulate trading", "trading simulation"]):
+            
+        if "paper trading" in query_lower or "simulation" in query_lower:
             tools_needed.append("run_paper_trading")
             return tools_needed
         
-        # Check for real-time stock price information with professional-grade data
-        if any(term in query for term in ["price", "worth", "value", "cost", "current", "how much", "quote", "tick", "bid", "ask"]):
-            if asset_type == "stock":
-                # Always use professional real-time quotes for current prices
-                tools_needed.append("get_real_time_quote")
-            elif asset_type == "crypto":
-                tools_needed.append("get_crypto_data")
-            elif asset_type == "forex":
-                tools_needed.append("get_forex_data")
+        # Check if this is a general financial query
+        if self._is_general_financial_query(query):
+            # For general queries, we'll use market news and economic indicators
+            if "market" in query_lower or "trend" in query_lower:
+                tools_needed.append("get_market_news")
+            if "economic" in query_lower or "inflation" in query_lower or "interest rate" in query_lower:
+                tools_needed.append("get_economic_indicator")
+            # If no specific tools were selected, use a default set
+            if not tools_needed:
+                tools_needed = ["get_market_news"]
+            return tools_needed
         
-        # Check for intraday/real-time analysis needs
-        if asset_type == "stock" and any(term in query for term in ["intraday", "minute", "hourly", "today's", "day trading", "scalping", "high frequency", "tick data", "level 2", "order book"]):
-            tools_needed.append("get_intraday_data")
-            
-        # Check for real-time streaming needs
-        if any(term in query for term in ["stream", "real-time updates", "live data", "continuous updates", "websocket", "streaming"]):
-            tools_needed.append("start_real_time_stream")
+        # For specific asset analysis, determine appropriate tools
+        # Always get basic price information
+        if self._needs_real_time_data(query):
+            tools_needed.append("get_real_time_quote")
+        else:
+            tools_needed.append("get_stock_price")
+            tools_needed.append("get_stock_history")
         
-        # Check for technical analysis needs
-        if any(term in query for term in ["technical", "indicator", "analysis"]):
-            if not needs_real_time:
-                tools_needed.append("calculate_rsi")
-                tools_needed.append("calculate_macd")
-        
-        # Check for specific technical indicators
-        if any(term in query for term in ["rsi", "relative strength", "overbought", "oversold"]):
+        # Check for technical analysis keywords
+        if any(term in query_lower for term in ["technical", "rsi", "relative strength", "momentum", "overbought", "oversold"]):
             tools_needed.append("calculate_rsi")
-        
-        if any(term in query for term in ["macd", "moving average convergence", "divergence"]):
+            
+        if any(term in query_lower for term in ["macd", "moving average", "convergence", "divergence", "signal", "crossover"]):
             tools_needed.append("calculate_macd")
             
-        # Check for new technical indicators
-        if any(term in query for term in ["obv", "on-balance volume", "on balance volume", "volume price"]):
+        if any(term in query_lower for term in ["obv", "on balance volume", "volume"]):
             tools_needed.append("calculate_obv")
             
-        if any(term in query for term in ["a/d line", "adline", "accumulation distribution", "accumulation/distribution"]):
+        if any(term in query_lower for term in ["adline", "accumulation distribution", "money flow"]):
             tools_needed.append("calculate_adline")
             
-        if any(term in query for term in ["adx", "average directional", "directional movement", "trend strength"]):
+        if any(term in query_lower for term in ["adx", "directional", "trend strength", "dmi"]):
             tools_needed.append("calculate_adx")
-        
-        # Check for historical data needs with optimized performance
-        if any(term in query for term in ["history", "historical", "trend", "past", "performance", "chart", "graph"]):
-            if asset_type == "stock":
-                # Use the new professional-grade historical data tool with caching
-                tools_needed.append("get_historical_data")
-            elif asset_type == "crypto":
-                tools_needed.append("get_crypto_data")
-            elif asset_type == "forex":
-                tools_needed.append("get_forex_data")
-        
-        # Check for company information needs with enhanced details
-        if asset_type == "stock" and any(term in query for term in ["info", "information", "about", "company", "details", "fundamentals", "profile", "executives", "market cap", "sector"]):
-            # Use the new professional-grade company details tool
-            tools_needed.append("get_company_details")
             
-        # Check for fundamental analysis needs
-        if asset_type == "stock" and any(term in query for term in ["fundamental", "financials", "ratios", "pe", "eps", "revenue", "earnings", "profit", "margin", "debt", "equity", "book value", "roe", "roa", "comprehensive"]):
-            # Add fundamental analysis tools
+        # Check for fundamental analysis keywords
+        if any(term in query_lower for term in ["fundamental", "company", "financials", "ratios", "p/e", "eps", "revenue"]):
+            tools_needed.append("get_company_info")
             tools_needed.append("get_financial_ratios")
+            
+        if any(term in query_lower for term in ["income", "earnings", "profit", "revenue", "expenses"]):
             tools_needed.append("get_income_statement_summary")
+            
+        if any(term in query_lower for term in ["balance sheet", "assets", "liabilities", "equity", "debt"]):
             tools_needed.append("get_balance_sheet_summary")
-        
-        # Check for news needs with professional-grade sources
-        if asset_type == "stock" and any(term in query for term in ["news", "headlines", "articles", "press", "announcement", "media", "release"]):
-            # Use the new professional-grade news tool
-            tools_needed.append("get_market_news")
-        
-        # Check for visualization needs
-        if asset_type == "stock" and any(term in query for term in ["chart", "graph", "plot", "visual", "picture", "show me"]):
+            
+        # Check for news keywords
+        if any(term in query_lower for term in ["news", "headlines", "announcement", "press", "release"]):
+            tools_needed.append("get_stock_news")
+            
+        # Check for visualization keywords
+        if any(term in query_lower for term in ["chart", "graph", "plot", "visual", "picture", "show"]):
             tools_needed.append("visualize_stock")
-        
-        # If nothing specific was detected, get appropriate default info based on asset type
+            
+        # Check for comprehensive analysis keywords
+        if any(term in query_lower for term in ["comprehensive", "complete", "detailed", "full", "thorough", "analysis", "evaluate", "assess"]):
+            # For comprehensive analysis, include a broad set of tools
+            tools_needed = [
+                "get_stock_price", 
+                "get_stock_history", 
+                "calculate_rsi", 
+                "calculate_macd", 
+                "get_company_info", 
+                "get_financial_ratios",
+                "get_stock_news", 
+                "visualize_stock"
+            ]
+            
+            # Add combined analysis if available
+            if "create_combined_analysis" in self.tools:
+                tools_needed.append("create_combined_analysis")
+                
+        # If no specific tools were identified, use a default set
         if not tools_needed:
-            if asset_type == "stock":
-                if needs_real_time:
-                    tools_needed = ["get_real_time_quote", "get_company_info"]
-                else:
-                    # For stocks, include comprehensive analysis by default
-                    tools_needed = ["get_stock_price", "get_company_info", "calculate_rsi", "calculate_macd", "get_financial_ratios", "get_market_news"]
-            elif asset_type == "crypto":
-                tools_needed = ["get_crypto_data"]
-            elif asset_type == "forex":
-                tools_needed = ["get_forex_data"]
-            else:
-                tools_needed = ["get_stock_price", "get_company_info"]
-        
+            tools_needed = ["get_stock_price", "get_stock_history", "get_company_info", "get_stock_news"]
+            
         return tools_needed
     
-    def _detect_asset_type(self, query):
-        """Detect the type of asset being queried (stock, crypto, forex)"""
-        query = query.lower()
-        
-        # Check for cryptocurrency keywords
-        crypto_keywords = ["crypto", "bitcoin", "btc", "ethereum", "eth", "cryptocurrency", "token", "coin"]
-        if any(keyword in query for keyword in crypto_keywords):
-            return "crypto"
-        
-        # Check for forex keywords
-        forex_keywords = ["forex", "currency", "exchange rate", "eur/usd", "usd/jpy", "gbp", "aud", "cad", "fx"]
-        if any(keyword in query for keyword in forex_keywords):
-            return "forex"
-        
-        # Default to stock
-        return "stock"
-        
     def _needs_real_time_data(self, query):
-        """Determine if real-time data is needed based on query"""
-        query = query.lower()
+        """Determine if the query requires real-time data"""
+        query_lower = query.lower()
         
-        # Keywords suggesting real-time data needs
+        # Keywords that suggest real-time data is needed
         real_time_keywords = [
-            "real-time", "realtime", "real time", "live", "current", "right now", "latest", 
-            "up to the minute", "intraday", "minute", "hourly", "today's", "day trading", 
-            "scalping", "tick", "second", "instant", "immediate", "now"
+            "current", "now", "today", "real-time", "realtime", "live", "latest", 
+            "up to date", "right now", "at this moment", "current price", "trading at",
+            "intraday", "minute", "hourly", "today's", "current session"
         ]
         
-        return any(keyword in query for keyword in real_time_keywords)
+        # Check if any real-time keywords are in the query
+        return any(keyword in query_lower for keyword in real_time_keywords)
     
-    def process_query(self, query):
-        """Process a user query using the ReAct pattern and return a response"""
-        # REASON: Determine asset type and real-time needs
-        asset_type = self._detect_asset_type(query)
-        needs_real_time = self._needs_real_time_data(query)
-        print(f"REACT - REASON: Analyzing query for asset type: {asset_type}")
-        print(f"REACT - REASON: Real-time data needed: {needs_real_time}")
+    def _is_general_financial_query(self, query):
+        """Detect if this is a general financial query rather than a specific stock analysis"""
+        query_lower = query.lower()
         
-        # REASON: Determine which tools to use based on the query
-        tools_needed = self.determine_tools_needed(query)
-        print(f"REACT - ACT: Selected tools: {tools_needed}")
-        
-        # Check if portfolio integration tools are needed
-        if "analyze_portfolio" in tools_needed:
-            print(f"REACT - ACT: Using portfolio analysis tool with full query")
-            result = self.tools["analyze_portfolio"](query)
-            return result
-            
-        elif "backtest_strategy" in tools_needed:
-            print(f"REACT - ACT: Using backtesting tool with full query")
-            result = self.tools["backtest_strategy"](query)
-            return result
-            
-        elif "run_paper_trading" in tools_needed:
-            print(f"REACT - ACT: Using paper trading simulation tool with full query")
-            result = self.tools["run_paper_trading"](query)
-            return result
-        
-        # For standard single-stock analysis, continue with normal flow
-        # ACT: Extract stock symbol from query
-        symbol = self.extract_stock_symbol(query)
-        
-        # ACT: Execute tools
-        results = {}
-        for tool_name in tools_needed:
-            if tool_name in self.tools:
-                print(f"REACT - ACT: Executing {tool_name} for {symbol}")
-                try:
-                    if tool_name == "get_economic_indicator":
-                        # Economic indicators don't need a symbol
-                        results[tool_name] = self.tools[tool_name](query)
-                    elif tool_name in ["calculate_obv", "calculate_adline", "calculate_adx"]:
-                        # Technical indicators need to fetch their own data
-                        # The wrapper methods already handle fetching data for the symbol
-                        results[tool_name] = self.tools[tool_name](symbol)
-                    else:
-                        # Most tools need a symbol
-                        results[tool_name] = self.tools[tool_name](symbol)
-                    print(f"REACT - OBSERVE: Got result from {tool_name}")
-                except Exception as e:
-                    print(f"REACT - ERROR: Tool '{tool_name}' failed with error: {str(e)}")
-                    results[tool_name] = f"Error: {str(e)}"
-            else:
-                print(f"REACT - ERROR: Tool '{tool_name}' not found")
-        
-        # Format results into a response
-        response = self._format_response(query, symbol, results)
-        
-        return response
-    
-    def _format_response(self, query, symbol, results):
-        """Format the results into a structured response"""
-        # Create a structured response with sections
-        response = f"# Financial Analysis for {symbol}\n\n"
-        
-        # Add sections based on available results
-        for tool_name, result in results.items():
-            if isinstance(result, str) and result.startswith("Error"):
-                response += f"## {tool_name.replace('_', ' ').title()}\n{result}\n\n"
-            else:
-                response += f"## {tool_name.replace('_', ' ').title()}\n{result}\n\n"
-        
-        return response
-        
-    def _detect_asset_type(self, query):
-        """Detect the type of asset being queried (stock, crypto, forex)"""
-        query = query.lower()
-        
-        # Check for cryptocurrency keywords
-        crypto_keywords = ["crypto", "bitcoin", "btc", "ethereum", "eth", "cryptocurrency", "token", "coin"]
-        if any(keyword in query for keyword in crypto_keywords):
-            return "crypto"
-        
-        # Check for forex keywords
-        forex_keywords = ["forex", "currency", "exchange rate", "eur/usd", "usd/jpy", "gbp", "aud", "cad", "fx"]
-        if any(keyword in query for keyword in forex_keywords):
-            return "forex"
-        
-        # Default to stock
-        return "stock"
-    
-    def _needs_real_time_data(self, query):
-        """Determine if real-time data is needed based on query"""
-        query = query.lower()
-        
-        # Keywords suggesting real-time data needs
-        real_time_keywords = [
-            "real-time", "realtime", "real time", "live", "current", "right now", "latest", 
-            "up to the minute", "intraday", "minute", "hourly", "today's", "day trading", 
-            "scalping", "tick", "second", "instant", "immediate", "now"
+        # Common financial terms that shouldn't be treated as stock symbols
+        financial_terms = [
+            "roi", "irr", "wacc", "capm", "cagr", "ebitda", "eps", "pe", "pb", "ps",
+            "dcf", "fcf", "ocf", "roa", "roe", "roic", "npm", "gpm", "opm", "ltv",
+            "cac", "arpu", "cogs", "sga", "r&d", "capex", "opex", "cpi", "gdp", "ppi",
+            "ipo", "m&a", "p&l", "yoy", "qoq", "ttm", "ytd", "mtd", "etf", "reit",
+            "hedge", "mutual", "index", "bond", "stock", "share", "equity", "debt",
+            "asset", "liability", "dividend", "yield", "growth", "value", "beta",
+            "finance", "market", "trend", "economy", "recession", "inflation", "interest rate",
+            "fed", "bull", "bear", "sector", "industry", "treasury",
+            "portfolio", "diversification", "asset allocation", "risk", "return", "volatility",
+            "market cap", "capitalization", "ratio", "ratios", "financial ratio", "financial ratios",
+            "valuation", "fundamental", "fundamental analysis", "technical analysis", "investment",
+            "investing", "trader", "trading", "investor", "financial statement", "balance sheet",
+            "income statement", "cash flow", "profit margin", "gross margin", "operating margin"
         ]
         
-        return any(keyword in query for keyword in real_time_keywords)
+        # Technical analysis terms that shouldn't be treated as stock symbols
+        technical_terms = [
+            "rsi", "macd", "sma", "ema", "bollinger", "fibonacci", "stochastic", "momentum",
+            "oscillator", "indicator", "chart pattern", "support", "resistance", "trend line",
+            "volume", "obv", "adx", "dmi", "atr", "vwap", "ichimoku", "candlestick",
+            "relative strength index", "moving average", "convergence divergence", "bands",
+            "technical indicator", "chart", "pattern", "price action", "overbought", "oversold"
+        ]
+        
+        # General question indicators
+        question_indicators = [
+            "what", "how", "why", "when", "which", "where", "can you", "tell me", "explain",
+            "describe", "overview", "summary", "trends", "outlook", "forecast", "prediction",
+            "define", "meaning", "concept", "understand", "difference between", "compare",
+            "list", "what are", "key", "important", "best", "top", "main", "primary", "essential",
+            "fundamental", "basic", "beginner", "learn", "guide", "tutorial", "introduction"
+        ]
+        
+        # Educational query patterns
+        educational_patterns = [
+            r'what\s+(?:are|is)\s+(?:the\s+)?(?:key|main|important|essential)\s+(?:financial\s+)?(?:ratios|indicators|metrics|factors)',
+            r'how\s+(?:do|can|to)\s+(?:calculate|compute|determine|evaluate|assess)',
+            r'explain\s+(?:how|what|why)\s+(?:to|is|are)',
+            r'(?:list|tell\s+me)\s+(?:the|some|all)\s+(?:key|main|important)'
+        ]
+        
+        # Check if query contains financial or technical terms
+        has_financial_terms = any(term in query_lower for term in financial_terms)
+        has_technical_terms = any(term in query_lower for term in technical_terms)
+        
+        # Check if query is phrased as a general question
+        is_general_question = any(indicator in query_lower for indicator in question_indicators)
+        
+        # Check if query is asking about general market trends or conditions
+        about_general_trends = "trend" in query_lower or "market" in query_lower or "current" in query_lower or "recent" in query_lower
+        
+        # Check for specific patterns that indicate general questions
+        is_definition_question = re.search(r'what\s+is\s+[a-z\s]+', query_lower) is not None
+        is_how_to_question = re.search(r'how\s+to\s+[a-z\s]+', query_lower) is not None
+        is_explain_question = re.search(r'explain\s+[a-z\s]+', query_lower) is not None
+        
+        # Check for educational query patterns
+        is_educational_query = any(re.search(pattern, query_lower) is not None for pattern in educational_patterns)
+        
+        # If it looks like a general financial query and doesn't have a clear stock ticker pattern
+        # (most tickers are 1-5 uppercase letters not preceded by text)
+        has_clear_ticker = bool(re.search(r'\b[A-Z]{1,5}\b', query))
+        
+        # If query contains "for [TICKER]" or "of [TICKER]", it's likely about a specific stock
+        specific_stock_pattern = re.search(r'for\s+[A-Z]{1,5}\b|of\s+[A-Z]{1,5}\b', query) is not None
+        
+        # Return True if it's likely a general query
+        return ((has_financial_terms or has_technical_terms or is_definition_question or 
+                is_how_to_question or is_explain_question or is_educational_query or
+                (is_general_question and about_general_trends)) and 
+                not specific_stock_pattern and not (has_clear_ticker and "current" in query_lower))
     
+    def _detect_asset_type(self, query, symbol=None):
+        """Detect the type of asset being queried (stock, crypto, forex)"""
+        query_lower = query.lower()
+        
+        # Check for cryptocurrency keywords
+        crypto_keywords = ["crypto", "bitcoin", "ethereum", "btc", "eth", "ltc", "xrp", "doge", "blockchain", "coin", "token"]
+        crypto_symbols = ["BTC", "ETH", "LTC", "XRP", "BCH", "ADA", "DOT", "LINK", "XLM", "DOGE", "UNI", "USDT", "USDC"]
+        
+        # Check for forex keywords
+        forex_keywords = ["forex", "currency", "exchange rate", "fx", "foreign exchange", "currency pair", "usd", "eur", "jpy", "gbp"]
+        forex_pairs = ["EUR/USD", "USD/JPY", "GBP/USD", "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD"]
+        
+        # Check if the symbol is a known crypto symbol
+        if symbol and symbol in crypto_symbols:
+            return "crypto"
+            
+        # Check if the symbol looks like a forex pair (XXX/YYY format)
+        if symbol and "/" in symbol and len(symbol) == 7:
+            return "forex"
+            
+        # Check for crypto keywords in the query
+        if any(keyword in query_lower for keyword in crypto_keywords):
+            return "crypto"
+            
+        # Check for forex keywords in the query
+        if any(keyword in query_lower for keyword in forex_keywords) or any(pair.lower() in query_lower for pair in forex_pairs):
+            return "forex"
+            
+        # Default to stock if no other asset type is detected
+        return "stock"
+
+    def _is_technical_indicator(self, potential_symbol):
+        """Check if a potential symbol is actually a technical indicator"""
+        # List of common technical indicators that might be mistaken for stock symbols
+        technical_indicators = [
+            "RSI", "MACD", "SMA", "EMA", "ADX", "ATR", "OBV", "CCI", "MFI", "ROC", 
+            "DMI", "SAR", "TSI", "CMF", "PPO", "DPO", "KST", "PVT", "ADL", "MOM"
+        ]
+        
+        return potential_symbol in technical_indicators
+    
+    def extract_stock_symbol(self, query):
+        """Extract stock symbol from query"""
+        # Common terms that might be mistaken for stock symbols
+        exclude_terms = ["CEO", "CFO", "CTO", "COO", "CIO", "IPO", "ETF", "REIT", "GAAP", "SEC"]
+        
+        # Look for ticker pattern: 1-5 uppercase letters
+        matches = re.findall(r'\b[A-Z]{1,5}\b', query)
+        
+        # Filter out common financial terms and technical indicators
+        valid_symbols = []
+        for match in matches:
+            # Skip if it's in the exclude list
+            if match in exclude_terms:
+                continue
+                
+            # Skip if it's a technical indicator
+            if self._is_technical_indicator(match):
+                continue
+                
+            valid_symbols.append(match)
+        
+        # Check for specific patterns like "RSI for AAPL" or "TSLA's RSI"
+        # In these cases, we want to extract AAPL or TSLA, not RSI
+        rsi_pattern = re.search(r'RSI\s+(?:for|of)\s+([A-Z]{1,5})\b|([A-Z]{1,5})(?:[\s\'"]s)?\s+RSI', query)
+        if rsi_pattern:
+            symbol = rsi_pattern.group(1) or rsi_pattern.group(2)
+            if symbol and symbol not in exclude_terms:
+                return symbol
+        
+        if valid_symbols:
+            return valid_symbols[0]
+        else:
+            # Check if this is likely a general query
+            if self._is_general_financial_query(query):
+                return None
+            # Default to a common stock if no symbol found
+            return "AAPL"
+
     def process_query(self, query):
         """Process a user query using the ReAct pattern and return a response"""
         try:
+            # First, check if this is a general financial query rather than a specific stock analysis
+            is_general_query = self._is_general_financial_query(query)
+            
+            # For general financial queries, use a conversational approach
+            if is_general_query:
+                print(f"REACT - REASON: Detected general financial query: '{query}'")
+                
+                # Use the AI model to generate a direct, conversational response if available
+                if 'model' in globals() and model is not None:
+                    try:
+                        print(f"REACT - ACT: Using AI model for conversational response to general query")
+                        prompt = f"""You are a professional financial analyst assistant. Provide a helpful, conversational, and directly relevant answer to this financial question: 
+                        
+                        {query}
+                        
+                        IMPORTANT: Your response MUST include specific financial data, numbers, statistics, and concrete information. For example:
+                        - If discussing ROI, include actual percentage ranges and calculation examples
+                        - If discussing market trends, include specific index values, percentage changes, and time periods
+                        - If discussing financial ratios, include actual numerical ranges considered healthy/concerning
+                        - If discussing economic indicators, include recent actual values and historical comparisons
+                        
+                        Make your answer clear, concise, and informative. Use a natural, conversational tone while ensuring you provide concrete financial data and numbers. Don't use a structured format with headers or sections. Don't mention that you're using any particular framework or methodology. Answer the question directly as a knowledgeable finance professional would in conversation, but ensure you include specific numbers and data points."""
+                        
+                        response = model.generate_content(prompt)
+                        return response.text
+                    except Exception as e:
+                        print(f"Error using AI model for general query: {str(e)}")
+                        # Fall back to standard processing if AI model fails
+                
+                # If AI model isn't available or fails, use relevant financial tools
+                # but format the response in a more conversational way
+                tools_needed = []
+                
+                # Select appropriate tools based on the query content
+                query_lower = query.lower()
+                
+                # Always include market data for context
+                tools_needed.append("get_market_news")
+                
+                # Add more specific tools based on query content
+                if "market" in query_lower or "trend" in query_lower or "outlook" in query_lower:
+                    tools_needed.append("get_market_news")
+                if any(term in query_lower for term in ["economic", "economy", "inflation", "interest rate", "fed", "gdp", "unemployment", "cpi"]):
+                    tools_needed.append("get_economic_indicator")
+                
+                # Add financial ratio tools for ratio-related queries
+                if any(term in query_lower for term in ["ratio", "pe", "p/e", "eps", "dividend", "yield", "margin", "profit", "revenue", "income", "balance", "cash flow"]):
+                    tools_needed.append("get_financial_ratios")
+                if any(term in query_lower for term in ["sector", "industry", "performance", "compare"]):
+                    tools_needed.append("get_sector_performance")
+                if any(term in query_lower for term in ["dividend", "yield", "income", "payout"]):
+                    tools_needed.append("get_dividend_info")
+                
+                # If no specific tools were selected, use a default set
+                if not tools_needed:
+                    tools_needed = ["get_market_news"]
+                
+                # Execute the selected tools
+                results = {}
+                for tool_name in tools_needed:
+                    if tool_name in self.tools:
+                        print(f"REACT - ACT: Executing {tool_name} for general query")
+                        try:
+                            if tool_name == "get_market_news":
+                                # For general market news, don't specify a symbol
+                                results[tool_name] = self.tools[tool_name]("MARKET")
+                            elif tool_name == "get_economic_indicator":
+                                # Determine which economic indicator to fetch based on the query
+                                indicator = "GDP"  # Default
+                                if "inflation" in query_lower or "cpi" in query_lower:
+                                    indicator = "INFLATION"
+                                elif "unemployment" in query_lower:
+                                    indicator = "UNEMPLOYMENT"
+                                elif "retail" in query_lower or "sales" in query_lower:
+                                    indicator = "RETAIL_SALES"
+                                elif "treasury" in query_lower or "yield" in query_lower:
+                                    indicator = "TREASURY_YIELD"
+                                elif "consumer" in query_lower or "sentiment" in query_lower:
+                                    indicator = "CONSUMER_SENTIMENT"
+                                elif "nonfarm" in query_lower or "payroll" in query_lower:
+                                    indicator = "NONFARM_PAYROLL"
+                                results[tool_name] = self.tools[tool_name](indicator)
+                            elif tool_name == "get_sector_performance":
+                                results[tool_name] = self.tools[tool_name]()
+                            elif tool_name == "get_dividend_info":
+                                # Use a diversified ETF for general dividend info
+                                results[tool_name] = self.tools[tool_name]("SPY")
+                            else:
+                                # For other tools that might need a symbol
+                                results[tool_name] = self.tools[tool_name]("SPY")  # Use S&P 500 ETF as default
+                        except Exception as e:
+                            print(f"REACT - ERROR: Tool '{tool_name}' failed with error: {str(e)}")
+                            results[tool_name] = f"Error: {str(e)}"
+                
+                # Format the response in a conversational way
+                return self._format_response(query, None, results, is_general_query=True)
+            
+            # For specific asset analysis, continue with normal flow
             # REASON: Determine which tools are needed based on the query
             tools_needed = self.determine_tools_needed(query)
             
@@ -1092,415 +1140,158 @@ class FinanceAnalystReActAgent:
             symbol = self.extract_stock_symbol(query)
             needs_real_time = self._needs_real_time_data(query)
             
-            print(f"\nREACT - REASON: Analyzing query for asset type: {asset_type}, symbol: {symbol}")
-            print(f"REACT - REASON: Real-time data needed: {needs_real_time}")
-            print(f"REACT - ACT: Selected tools: {tools_needed}")
-            
-            # ACT & OBSERVE: Execute each tool and collect results
+            # ACT: Execute the selected tools
             results = {}
             for tool_name in tools_needed:
-                print(f"REACT - ACT: Executing {tool_name} for {symbol}")
-                
-                tool_function = self.tools[tool_name]
-                
-                # Handle special parameters for different tools
-                if tool_name == "get_stock_history":
-                    # Extract period if specified, otherwise use default
-                    period = "1mo"  # default
-                    if "year" in query.lower() or "1y" in query.lower():
-                        period = "1y"
-                    elif "month" in query.lower() or "1mo" in query.lower():
-                        period = "1mo"
-                    elif "week" in query.lower() or "1w" in query.lower():
-                        period = "1w"
-                    elif "day" in query.lower() or "1d" in query.lower():
-                        period = "1d"
-                    
-                    results[tool_name] = tool_function(symbol, period)
-                
-                elif tool_name == "visualize_stock":
-                    # Determine which indicators to include
-                    indicators = ["sma", "rsi"]  # Default
-                    if "bollinger" in query.lower() or "bands" in query.lower():
-                        indicators.append("bollinger")
-                    if "macd" in query.lower():
-                        indicators.append("macd")
-                    
-                    # Determine period
-                    period = "6mo"  # Default
-                    if "year" in query.lower() or "1y" in query.lower():
-                        period = "1y"
-                    elif "month" in query.lower() or "3mo" in query.lower():
-                        period = "3mo"
-                    
-                    results[tool_name] = tool_function(symbol, period, indicators)
-                
-                elif tool_name == "get_stock_news":
-                    # Determine how many news items to include
-                    max_items = 5  # Default
-                    if "more news" in query.lower() or "detailed news" in query.lower():
-                        max_items = 10
-                    
-                    results[tool_name] = tool_function(symbol, max_items)
-                    
-                elif tool_name == "get_intraday_data":
-                    # Determine interval for intraday data
-                    interval = "1min"  # Default to 1-minute data
-                    if "5 minute" in query.lower() or "5min" in query.lower():
-                        interval = "5min"
-                    elif "15 minute" in query.lower() or "15min" in query.lower():
-                        interval = "15min"
-                    elif "30 minute" in query.lower() or "30min" in query.lower():
-                        interval = "30min"
-                    elif "60 minute" in query.lower() or "hourly" in query.lower() or "1hour" in query.lower():
-                        interval = "60min"
-                    
-                    # Determine output size
-                    output_size = "compact"  # Default (latest 100 data points)
-                    if "full" in query.lower() or "complete" in query.lower() or "all data" in query.lower():
-                        output_size = "full"  # Full data (up to 30 days)
-                    
-                    data = tool_function(symbol, interval, output_size)
-                    results[tool_name] = AlphaVantageTools.format_real_time_data_for_display(data)
-                
-                elif tool_name == "get_real_time_quote":
-                    data = tool_function(symbol)
-                    results[tool_name] = AlphaVantageTools.format_real_time_data_for_display(data)
-                
-                elif tool_name == "get_crypto_data":
-                    # Handle crypto data
-                    market = "USD"  # Default market
-                    if isinstance(symbol, tuple) and len(symbol) == 2:
-                        # If symbol is actually a currency pair
-                        from_currency, to_currency = symbol
-                        # Use forex tool instead
-                        data = self.tools["get_forex_data"](from_currency, to_currency)
-                        results[tool_name] = AlphaVantageTools.format_real_time_data_for_display(data)
-                    else:
-                        # Determine interval
-                        interval = "1min" if needs_real_time else "daily"
-                        if "weekly" in query.lower():
-                            interval = "weekly"
-                        elif "monthly" in query.lower():
-                            interval = "monthly"
-                        
-                        data = tool_function(symbol, market, interval)
-                        results[tool_name] = AlphaVantageTools.format_real_time_data_for_display(data)
-                
-                elif tool_name == "get_forex_data":
-                    # Handle forex data
-                    if isinstance(symbol, tuple) and len(symbol) == 2:
-                        from_currency, to_currency = symbol
-                    else:
-                        # Default to EUR/USD if not properly specified
-                        from_currency, to_currency = "EUR", "USD"
-                    
-                    # Determine interval
-                    interval = "1min" if needs_real_time else "daily"
-                    if "weekly" in query.lower():
-                        interval = "weekly"
-                    elif "monthly" in query.lower():
-                        interval = "monthly"
-                    
-                    data = tool_function(from_currency, to_currency, interval)
-                    results[tool_name] = AlphaVantageTools.format_real_time_data_for_display(data)
-                
-                elif tool_name == "get_economic_indicator":
-                    # Determine which economic indicator to fetch
-                    indicator = "GDP"  # Default
-                    if "inflation" in query.lower() or "cpi" in query.lower():
-                        indicator = "INFLATION"
-                    elif "unemployment" in query.lower():
-                        indicator = "UNEMPLOYMENT"
-                    elif "retail" in query.lower() or "sales" in query.lower():
-                        indicator = "RETAIL_SALES"
-                    elif "treasury" in query.lower() or "yield" in query.lower():
-                        indicator = "TREASURY_YIELD"
-                    elif "consumer" in query.lower() or "sentiment" in query.lower():
-                        indicator = "CONSUMER_SENTIMENT"
-                    elif "nonfarm" in query.lower() or "payroll" in query.lower() or "jobs" in query.lower():
-                        indicator = "NONFARM_PAYROLL"
-                    
-                    data = tool_function(indicator)
-                    results[tool_name] = AlphaVantageTools.format_real_time_data_for_display(data)
-                
-                # Handle predictive analytics tools
-                elif tool_name in ["forecast_with_prophet", "forecast_with_lstm", "detect_anomalies", 
-                                  "calculate_volatility", "scenario_analysis", "check_stationarity"]:
-                    # First, we need historical data to work with
-                    print(f"REACT - ACT: Getting historical data for {symbol} for predictive analytics")
-                    
-                    # Determine period based on query
-                    period = "1y"  # Default to 1 year of data for predictions
-                    if "short term" in query.lower() or "near term" in query.lower():
-                        period = "3mo"
-                    elif "long term" in query.lower() or "long run" in query.lower():
-                        period = "5y"
-                    
-                    # Get historical data using yfinance
-                    if asset_type == "stock":
-                        historical_data = StockTools.get_stock_history(symbol, period, return_df=True)
-                    elif asset_type == "crypto":
-                        # For crypto, we'll use Alpha Vantage data
-                        crypto_data = AlphaVantageTools.get_crypto_data(symbol, "USD", "daily")
-                        if "error" in crypto_data:
-                            results[tool_name] = {"error": f"Could not get historical data for {symbol}: {crypto_data['error']}"}
-                            continue
-                        # Convert Alpha Vantage data to DataFrame
-                        historical_data = pd.DataFrame(crypto_data['time_series'])
-                    else:
-                        results[tool_name] = {"error": f"Predictive analytics not supported for asset type: {asset_type}"}
-                        continue
-                    
-                    # Check if we have valid historical data
-                    if historical_data is None or historical_data.empty:
-                        results[tool_name] = {"error": f"No historical data available for {symbol}"}
-                        continue
-                    
-                    # Process based on specific predictive tool
-                    if tool_name == "forecast_with_prophet":
-                        # Determine forecast periods
-                        periods = 30  # Default to 30 days
-                        if "week" in query.lower():
-                            periods = 7
-                        elif "month" in query.lower():
-                            periods = 30
-                        elif "quarter" in query.lower():
-                            periods = 90
-                        elif "year" in query.lower():
-                            periods = 365
-                        
-                        # Ensure historical_data is properly formatted for Prophet
-                        try:
-                            # Make a copy to avoid modifying the original data
-                            prophet_data = historical_data.copy()
-                            
-                            # Check if we have a DatetimeIndex
-                            if isinstance(prophet_data.index, pd.DatetimeIndex):
-                                prophet_data.reset_index(inplace=True)
-                                prophet_data.rename(columns={'index': 'ds', 'Close': 'y'}, inplace=True)
-                            
-                            # If we already have 'Date' column, rename it
-                            if 'Date' in prophet_data.columns:
-                                prophet_data.rename(columns={'Date': 'ds', 'Close': 'y'}, inplace=True)
-                            
-                            # Ensure we have 'ds' and 'y' columns for Prophet
-                            if 'ds' not in prophet_data.columns or 'y' not in prophet_data.columns:
-                                # Create them from scratch if needed
-                                if isinstance(historical_data.index, pd.DatetimeIndex):
-                                    prophet_data = pd.DataFrame({
-                                        'ds': historical_data.index,
-                                        'y': historical_data['Close']
-                                    })
-                            
-                            results[tool_name] = tool_function(prophet_data, periods=periods)
-                        except Exception as e:
-                            results[tool_name] = {"error": f"Error preparing data for Prophet: {str(e)}"}
-                        
-                    elif tool_name == "forecast_with_lstm":
-                        # Configure LSTM parameters
-                        target_column = 'Close'  # Default to Close price
-                        sequence_length = 10  # Default lookback window
-                        forecast_periods = 30  # Default forecast horizon
-                        
-                        if "week" in query.lower():
-                            forecast_periods = 7
-                        elif "month" in query.lower():
-                            forecast_periods = 30
-                        elif "quarter" in query.lower():
-                            forecast_periods = 90
-                            
-                        results[tool_name] = tool_function(historical_data, target_column, sequence_length, forecast_periods)
-                        
-                    elif tool_name == "detect_anomalies":
-                        # Configure anomaly detection parameters
-                        contamination = 0.05  # Default contamination rate
-                        if "high sensitivity" in query.lower() or "detect more" in query.lower():
-                            contamination = 0.1
-                        elif "low sensitivity" in query.lower() or "strict" in query.lower():
-                            contamination = 0.01
-                            
-                        results[tool_name] = tool_function(historical_data['Close'], contamination)
-                        
-                    elif tool_name == "calculate_volatility":
-                        # Configure volatility calculation parameters
-                        window_size = 20  # Default window size (20 trading days ~ 1 month)
-                        if "short term" in query.lower():
-                            window_size = 10
-                        elif "long term" in query.lower():
-                            window_size = 60
-                            
-                        results[tool_name] = tool_function(historical_data, price_column='Close', window_size=window_size)
-                        
-                    elif tool_name == "scenario_analysis":
-                        # Configure scenario analysis parameters
-                        forecast_periods = 30  # Default to 30 days
-                        if "week" in query.lower():
-                            forecast_periods = 7
-                        elif "month" in query.lower():
-                            forecast_periods = 30
-                        elif "quarter" in query.lower():
-                            forecast_periods = 90
-                        elif "year" in query.lower():
-                            forecast_periods = 252  # Trading days in a year
-                            
-                        # Define scenarios based on query
-                        scenarios = ['base', 'bull', 'bear']  # Use explicit default scenarios
-                        
-                        try:
-                            # Ensure historical_data has the required format
-                            if 'Close' not in historical_data.columns:
-                                # Try to find an appropriate price column
-                                price_columns = [col for col in historical_data.columns 
-                                                if col.lower() in ['close', 'price', 'value', 'adjclose']]
-                                
-                                if price_columns:
-                                    price_column = price_columns[0]
-                                else:
-                                    # If no suitable column found, use the first numeric column
-                                    numeric_cols = [col for col in historical_data.columns 
-                                                  if pd.api.types.is_numeric_dtype(historical_data[col])]
-                                    if numeric_cols:
-                                        price_column = numeric_cols[0]
-                                    else:
-                                        results[tool_name] = {"error": "No suitable price column found in data"}
-                                        continue
-                            else:
-                                price_column = 'Close'
-                                
-                            # Ensure we have a proper datetime index
-                            if not isinstance(historical_data.index, pd.DatetimeIndex):
-                                if 'Date' in historical_data.columns:
-                                    historical_data = historical_data.set_index('Date')
-                                else:
-                                    # Create a synthetic date index
-                                    historical_data = historical_data.reset_index(drop=True)
-                                    end_date = datetime.now()
-                                    start_date = end_date - timedelta(days=len(historical_data))
-                                    historical_data.index = pd.date_range(start=start_date, periods=len(historical_data))
-                            
-                            results[tool_name] = tool_function(historical_data, price_column=price_column, 
-                                                            scenarios=scenarios, forecast_periods=forecast_periods)
-                        except Exception as e:
-                            results[tool_name] = {"error": f"Error in scenario analysis: {str(e)}"}
-                        
-                    elif tool_name == "check_stationarity":
-                        # Check stationarity of the time series
-                        results[tool_name] = tool_function(historical_data['Close'])
-                
-                else:
-                    # Standard execution for other tools
-                    results[tool_name] = tool_function(symbol)
-                
-                print(f"REACT - OBSERVE: Got result from {tool_name}")
-                
-            # Format asset type and symbol for display
-            if asset_type == "crypto":
-                asset_display = f"cryptocurrency {symbol}"
-            elif asset_type == "forex" and isinstance(symbol, tuple) and len(symbol) == 2:
-                asset_display = f"forex pair {symbol[0]}/{symbol[1]}"
-            else:
-                asset_display = f"stock {symbol}"
+                if tool_name in self.tools:
+                    print(f"REACT - ACT: Executing {tool_name} for {symbol}")
+                    try:
+                        if tool_name == "get_real_time_quote":
+                            results[tool_name] = self.tools[tool_name](symbol)
+                        elif tool_name == "get_intraday_data":
+                            results[tool_name] = self.tools[tool_name](symbol, needs_real_time)
+                        elif tool_name == "get_historical_data":
+                            results[tool_name] = self.tools[tool_name](symbol, needs_real_time)
+                        elif tool_name == "get_crypto_data":
+                            results[tool_name] = self.tools[tool_name](symbol, needs_real_time)
+                        elif tool_name == "get_forex_data":
+                            results[tool_name] = self.tools[tool_name](symbol, needs_real_time)
+                        elif tool_name == "get_economic_indicator":
+                            results[tool_name] = self.tools[tool_name](symbol)
+                        else:
+                            results[tool_name] = self.tools[tool_name](symbol)
+                    except Exception as e:
+                        print(f"REACT - ERROR: Tool '{tool_name}' failed with error: {str(e)}")
+                        results[tool_name] = f"Error: {str(e)}"
             
             # LOOP: Analyze all results together
-            print("REACT - LOOP: Analyzing all results together")
+            print(f"REACT - LOOP: Analyzing all results together")
             
-            # Combine all results into a comprehensive analysis
-            combined_result = f"Financial Analysis for {asset_display}:\n\n"
+            # Check if this is a general financial query
+            is_general_query = self._is_general_financial_query(query)
             
-            for tool_name, result in results.items():
-                combined_result += f"--- {tool_name.replace('_', ' ').title()} Results ---\n"
-                combined_result += f"{result}\n\n"
+            # For general queries, use a direct response format
+            if is_general_query:
+                # If we have AI model results, use those directly
+                if 'model' in globals() and model is not None:
+                    try:
+                        # Create a summary of all the tool results
+                        summary = ""
+                        for tool_name, result in results.items():
+                            if isinstance(result, str):
+                                summary += f"{result}\n\n"
+                        
+                        # Ask the AI model to generate a direct response based on the tools' output
+                        prompt = f"Based on the following financial data and the query '{query}', provide a direct, concise answer without using a structured format or mentioning the ReAct framework:\n\n{summary}"
+                        response = model.generate_content(prompt)
+                        return response.text
+                    except Exception as e:
+                        print(f"Error using AI model for response formatting: {str(e)}")
+                        # Fall back to standard formatting
+                
+                # If AI model isn't available or fails, use simplified formatting
+                return self._format_response(query, symbol, results, is_general_query=True)
             
-            # Use Gemini to analyze the combined results and provide insights if available
-            if model is not None:
-                try:
-                    # Create appropriate prompt based on asset type
-                    if asset_type == "crypto":
-                        prompt = f"""
-                        As a financial analyst following the ReAct pattern (Reason → Act → Observe → Loop),
-                        analyze the following comprehensive data about {symbol} cryptocurrency:
-                        
-                        {combined_result}
-                        
-                        Provide a thorough analysis with:
-                        1. Summary: Brief overview of key findings
-                        2. Technical Analysis: Insights from price action and indicators
-                        3. Market Sentiment: Current market sentiment and trends
-                        4. Recommendation: Suggested actions or insights based on all data
-                        
-                        Keep your response professional and fact-based.
-                        """
-                    elif asset_type == "forex":
-                        from_currency = symbol[0] if isinstance(symbol, tuple) else "EUR"
-                        to_currency = symbol[1] if isinstance(symbol, tuple) else "USD"
-                        prompt = f"""
-                        As a financial analyst following the ReAct pattern (Reason → Act → Observe → Loop),
-                        analyze the following comprehensive data about {from_currency}/{to_currency} forex pair:
-                        
-                        {combined_result}
-                        
-                        Provide a thorough analysis with:
-                        1. Summary: Brief overview of key findings
-                        2. Technical Analysis: Insights from exchange rate movements
-                        3. Economic Factors: Relevant economic factors affecting the currencies
-                        4. Recommendation: Suggested actions or insights based on all data
-                        
-                        Keep your response professional and fact-based.
-                        """
-                    elif "get_economic_indicator" in tools_needed:
-                        prompt = f"""
-                        As a financial analyst following the ReAct pattern (Reason → Act → Observe → Loop),
-                        analyze the following comprehensive economic data:
-                        
-                        {combined_result}
-                        
-                        Provide a thorough analysis with:
-                        1. Summary: Brief overview of key findings
-                        2. Economic Analysis: Insights from economic indicators
-                        3. Market Impact: How these economic factors might affect financial markets
-                        4. Outlook: Economic outlook based on the data
-                        
-                        Keep your response professional and fact-based.
-                        """
-                    else:  # Default stock analysis
-                        prompt = f"""
-                        As a financial analyst following the ReAct pattern (Reason → Act → Observe → Loop),
-                        analyze the following comprehensive data about {symbol} stock:
-                        
-                        {combined_result}
-                        
-                        Provide a thorough analysis with:
-                        1. Summary: Brief overview of key findings
-                        2. Technical Analysis: Insights from technical indicators
-                        3. Fundamental Analysis: Insights from company information
-                        4. News Impact: How recent news might affect the stock
-                        5. Recommendation: Suggested actions or insights based on all data
-                        
-                        Keep your response professional and fact-based.
-                        """
-                    
-                    response = model.generate_content(prompt)
-                    return response.text
-                except Exception as e:
-                    print(f"Warning: Gemini API error: {str(e)}")
-                    print("Falling back to raw data")
-                    # Fall back to raw data with a simple analysis
-                    return self._generate_simple_analysis(symbol, results, asset_type)
+            # Format the final response for specific asset types
+            if asset_type == "stock":
+                return self._format_response(query, symbol, results)
+            elif asset_type == "crypto":
+                return self._format_response(query, symbol, results)
+            elif asset_type == "forex":
+                return self._format_response(query, symbol, results)
             else:
-                # If no model is available, generate a simple analysis
-                return self._generate_simple_analysis(symbol, results, asset_type)
-            
+                return self._format_response(query, symbol, results)
         except Exception as e:
-            return f"Error processing your query: {str(e)}"
-    
-    def _generate_simple_analysis(self, symbol, results, asset_type="stock"):
-        """Generate a simple analysis when Gemini is not available"""
+            print(f"Error processing query: {str(e)}")
+            return f"I encountered an error while processing your query: {str(e)}"
+
+    def _format_response(self, query, symbol, results, is_general_query=False):
+        """Format the results into a structured professional financial analyst response"""
+        
+        # Use Gemini AI to create a professional structured response
+        if 'model' in globals() and model is not None:
+            try:
+                # Extract key information from results
+                data_points = []
+                for tool_name, result in results.items():
+                    if isinstance(result, str) and not result.startswith("Error"):
+                        data_points.append(f"{tool_name}: {result}")
+                    elif not isinstance(result, str) and isinstance(result, dict) and "text" in result:
+                        data_points.append(f"{tool_name}: {result['text']}")
+                
+                # Create a context-rich prompt for the model
+                data_context = "\n\n".join(data_points)
+                
+                # Determine asset type for context
+                asset_context = ""
+                if symbol:
+                    if isinstance(symbol, tuple) and len(symbol) == 2:
+                        asset_context = f"analyzing forex pair {symbol[0]}/{symbol[1]}"
+                    elif self._detect_asset_type(query) == "crypto":
+                        asset_context = f"analyzing cryptocurrency {symbol}"
+                    else:
+                        asset_context = f"analyzing stock {symbol}"
+                else:
+                    asset_context = "providing general market analysis"
+                
+                prompt = f"""You are a Senior Financial Analyst providing institutional-grade analysis. You are {asset_context} based on the query: '{query}'
+                
+DATA AVAILABLE:
+{data_context}
+
+You MUST structure your response using this EXACT professional format:
+
+## EXECUTIVE SUMMARY
+• [Key findings and investment thesis in 2-3 bullet points]
+• [Current price and price target if applicable]
+• [Overall recommendation: Strong Buy/Buy/Hold/Sell/Strong Sell]
+
+## TECHNICAL ANALYSIS
+• [Price action and trend analysis]
+• [Key technical indicators (RSI, MACD, moving averages)]
+• [Support and resistance levels]
+• [Volume analysis and momentum indicators]
+
+## FUNDAMENTAL ANALYSIS
+• [Financial metrics and ratios (P/E, P/B, ROE, etc.)]
+• [Revenue and earnings trends]
+• [Balance sheet strength and debt levels]
+• [Industry comparison and competitive positioning]
+
+## MARKET CONTEXT
+• [Recent news and market developments]
+• [Sector performance and economic factors]
+• [Risk factors and catalysts]
+
+## INVESTMENT RECOMMENDATION
+• [Clear buy/sell/hold recommendation with rationale]
+• [Price targets and time horizon]
+• [Risk assessment and position sizing guidance]
+• [Key metrics to monitor going forward]
+
+PROFESSIONAL REQUIREMENTS:
+- Use precise financial terminology and industry-standard metrics
+- Provide quantitative analysis with specific numbers and percentages
+- Include confidence levels and risk assessments
+- Maintain objectivity and avoid emotional language
+- Always cite data sources and time periods
+- Only use the data provided - DO NOT make up information
+- If data is missing for a section, state "Data not available" rather than fabricating"""
+                
+                response = model.generate_content(prompt)
+                return response.text
+                
+            except Exception as e:
+                print(f"Error using AI model for response formatting: {str(e)}")
+                # Fall back to manual formatting
+        
         # Format asset display name
-        if asset_type == "crypto":
-            asset_display = f"cryptocurrency {symbol}"
-        elif asset_type == "forex" and isinstance(symbol, tuple) and len(symbol) == 2:
+        if symbol is None:
+            asset_display = "financial markets"
+        elif isinstance(symbol, tuple) and len(symbol) == 2:
             asset_display = f"forex pair {symbol[0]}/{symbol[1]}"
+        elif self._detect_asset_type(query) == "crypto":
+            asset_display = f"cryptocurrency {symbol}"
         else:
             asset_display = f"stock {symbol}"
             
@@ -1510,6 +1301,7 @@ class FinanceAnalystReActAgent:
         analysis += "SUMMARY\n-------\n"
         
         # Handle different asset types
+        asset_type = self._detect_asset_type(query)
         if asset_type == "stock":
             # Stock price information
             if "get_stock_price" in results:

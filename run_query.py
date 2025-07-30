@@ -1,19 +1,10 @@
-#!/usr/bin/env python3
-"""
-Script to run a specific query through the Finance Analyst AI Agent
-With enhanced demonstration capabilities
-"""
-
 import os
 import time
 import json
 from finance_analyst_agent import FinanceAnalystReActAgent
 
 def get_mock_comprehensive_response(symbol="MSFT"):
-    """
-    Generate a comprehensive mock response with all capabilities
-    to demonstrate the full UI formatting capabilities
-    """
+
     return f'''
 # Comprehensive Analysis: {symbol}
 
@@ -71,32 +62,38 @@ Microsoft Corporation (MSFT) shows **strong technical indicators** with a bullis
 def main():
     print("Initializing Finance Analyst AI Agent...")
     agent = FinanceAnalystReActAgent()
-    
-    query = "Provide a comprehensive analysis of MSFT including technical indicators, fundamental data (P/E ratio, revenue growth, earnings), news impact, and a detailed buy/sell recommendation"
-    
-    print(f"\nProcessing query: '{query}'")
-    print("-" * 80)
-    
-    start_time = time.time()
-    try:
-        response = agent.process_query(query)
+    test_queries = [
+        "What is ROI and how is it calculated?",
+        "Explain how interest rates affect the stock market",
+        "What are the key financial ratios to evaluate a company?",
         
-        # Check if the response is missing fundamental data or news
-        if "Missing Data: No fundamental data" in response or "Missing Data: No news" in response:
-            print("\nDetected missing data in response. Using enhanced demonstration mode...")
-            response = get_mock_comprehensive_response("MSFT")
-    except Exception as e:
-        print(f"Error processing query: {str(e)}")
-        print("Falling back to demonstration mode")
-        response = get_mock_comprehensive_response("MSFT")
-        
-    end_time = time.time()
+        # Stock-specific queries (should use ReAct structured format)
+        "Analyze AAPL stock performance",
+        "What's the current RSI for TSLA?"
+    ]
     
-    print("\nResponse:")
-    print("-" * 80)
-    print(response)
-    print("-" * 80)
-    print(f"Query processed in {end_time - start_time:.2f} seconds")
+    for i, query in enumerate(test_queries):
+        print(f"\n\nTEST QUERY #{i+1}: '{query}'")
+        print("-" * 80)
+        
+        start_time = time.time()
+        try:
+            response = agent.process_query(query)
+        except Exception as e:
+            print(f"Error processing query: {str(e)}")
+            print("Skipping to next query...")
+            continue
+            
+        end_time = time.time()
+        
+        print("\nResponse:")
+        print("-" * 80)
+        print(response)
+        print("-" * 80)
+        print(f"Query processed in {end_time - start_time:.2f} seconds")
+        
+        # Add a small delay between queries
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()
