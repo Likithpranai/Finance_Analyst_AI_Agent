@@ -37,6 +37,11 @@ from tools.websocket_manager import websocket_manager
 from tools.cache_manager import CacheManager
 from tools.real_time_data_integration import RealTimeDataTools
 
+# Import enhanced API integrations
+from tools.finnhub_integration import FinnhubTools
+from tools.tiingo_integration import TiingoTools
+from tools.newsapi_integration import NewsAPITools
+
 load_dotenv()
 
 # Configure Gemini API
@@ -593,7 +598,30 @@ class FinanceAnalystReActAgent:
             # Portfolio Integration tools
             "analyze_portfolio": PortfolioIntegrationTools.analyze_portfolio,
             "backtest_strategy": PortfolioIntegrationTools.backtest_strategy,
-            "run_paper_trading": PortfolioIntegrationTools.run_paper_trading
+            "run_paper_trading": PortfolioIntegrationTools.run_paper_trading,
+            
+            # Enhanced API Integration tools
+            # Finnhub tools for comprehensive financial data
+            "get_company_profile": FinnhubTools.get_company_profile,
+            "get_earnings_data": FinnhubTools.get_earnings_data,
+            "get_analyst_recommendations": FinnhubTools.get_analyst_recommendations,
+            "get_insider_trading": FinnhubTools.get_insider_trading,
+            "get_financial_metrics": FinnhubTools.get_financial_metrics,
+            "get_finnhub_news": FinnhubTools.get_market_news,
+            
+            # Tiingo tools for high-quality data
+            "get_stock_metadata": TiingoTools.get_stock_metadata,
+            "get_historical_prices": TiingoTools.get_historical_prices,
+            "get_latest_prices": TiingoTools.get_latest_prices,
+            "get_crypto_data_tiingo": TiingoTools.get_crypto_data,
+            "get_tiingo_news": TiingoTools.get_news,
+            "get_fundamentals": TiingoTools.get_fundamentals,
+            
+            # NewsAPI tools for comprehensive news coverage
+            "get_business_news": NewsAPITools.get_business_news,
+            "search_financial_news": NewsAPITools.search_financial_news,
+            "get_company_news": NewsAPITools.get_company_news,
+            "get_market_sentiment_news": NewsAPITools.get_market_sentiment_news
         }
         
         self.system_prompt = """
@@ -678,6 +706,30 @@ class FinanceAnalystReActAgent:
         44. backtest_strategy(query): Backtest trading strategy based on user query (extract symbol, strategy type, and parameters)
         45. run_paper_trading(query): Run paper trading simulation based on user query
         
+        ENHANCED API INTEGRATION TOOLS:
+        
+        FINNHUB TOOLS (COMPREHENSIVE FINANCIAL DATA):
+        46. get_company_profile(symbol): Get detailed company profile, industry, market cap, and business metrics
+        47. get_earnings_data(symbol): Get earnings history, estimates, surprises, and quarterly performance
+        48. get_analyst_recommendations(symbol): Get analyst ratings, price targets, and recommendation trends
+        49. get_insider_trading(symbol, days): Get insider trading activity and executive transactions
+        50. get_financial_metrics(symbol): Get comprehensive financial ratios, profitability, and growth metrics
+        51. get_finnhub_news(symbol, limit): Get company-specific news and market developments
+        
+        TIINGO TOOLS (HIGH-QUALITY DATA):
+        52. get_stock_metadata(symbol): Get stock metadata and exchange information
+        53. get_historical_prices(symbol, start_date, end_date): Get high-quality historical price data
+        54. get_latest_prices(symbols): Get latest prices for multiple symbols efficiently
+        55. get_crypto_data_tiingo(symbol, start_date, end_date): Get cryptocurrency data from Tiingo
+        56. get_tiingo_news(symbols, limit): Get financial news with ticker associations
+        57. get_fundamentals(symbol): Get fundamental financial statement data
+        
+        NEWSAPI TOOLS (COMPREHENSIVE NEWS COVERAGE):
+        58. get_business_news(query, limit): Get business and financial news headlines
+        59. search_financial_news(query, limit): Search for specific financial news topics
+        60. get_company_news(company_name, limit): Get company-specific news coverage
+        61. get_market_sentiment_news(limit): Get news for market sentiment analysis with sentiment scoring
+        
         When a user asks a question about a stock, you should follow the ReAct pattern:
         1. REASON: Think about what information is needed to answer the query
         2. ACT: Select and execute the appropriate tool(s)
@@ -705,6 +757,18 @@ class FinanceAnalystReActAgent:
         - For portfolio optimization and efficient frontier, use analyze_portfolio with optimization keywords (40)
         - For backtesting trading strategies, use backtest_strategy (41)
         - For paper trading simulation, use run_paper_trading (42)
+        
+        ENHANCED ANALYSIS GUIDELINES:
+        - For comprehensive company analysis, use get_company_profile (46) and get_financial_metrics (50)
+        - For earnings analysis and estimates, use get_earnings_data (47)
+        - For analyst sentiment and price targets, use get_analyst_recommendations (48)
+        - For insider activity analysis, use get_insider_trading (49)
+        - For high-quality historical data, use get_historical_prices (53) from Tiingo
+        - For comprehensive news coverage, use get_company_news (60) and search_financial_news (59)
+        - For market sentiment analysis, use get_market_sentiment_news (61)
+        - For fundamental analysis, combine get_fundamentals (57) with get_financial_metrics (50)
+        - For multi-source news analysis, use get_finnhub_news (51), get_tiingo_news (56), and NewsAPI tools
+        - For cryptocurrency analysis, use get_crypto_data_tiingo (55) for high-quality data
         
         RESPONSE FORMATTING REQUIREMENTS:
         You must structure ALL responses using the following professional format:
